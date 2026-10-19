@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "careerloop"
+version = "0.1.0"
+description = "A job search and a study plan that feed each other: find roles, study the skills they want that you lack, and claim only what you hold."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES"]
+requires-python = ">=3.9"
+dependencies = ["tomli>=1.1; python_version < '3.11'"]
+keywords = ["job-search", "spaced-repetition", "fsrs", "resume", "study-plan"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: End Users/Desktop",
+    "Environment :: Console",
+    "Operating System :: POSIX",
+    "Development Status :: 4 - Beta",
+    "Topic :: Education",
+    "Topic :: Office/Business",
+]
+
+[project.urls]
+Homepage = "https://github.com/sethpsonnier/careerloop"
+Documentation = "https://github.com/sethpsonnier/careerloop/tree/main/docs"
+Issues = "https://github.com/sethpsonnier/careerloop/issues"
+
+[project.scripts]
+careerloop = "careerloop.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+careerloop = ["lexicons/*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,15 @@
+careerloop
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+src/careerloop/fsrs.py re-implements the FSRS-6 scheduling formulas and default
+parameters of py-fsrs 6.3.2, https://github.com/open-spaced-repetition/py-fsrs,
+Copyright (c) 2022 Open Spaced Repetition, distributed under the MIT License
+(reproduced in THIRD_PARTY_NOTICES).
+
+Ideas adapted without code, credited in README.md: career-ops, ai-job-search,
+claude-tutor, agent-tutor-skill, DeepTutor, tutor-skills, learn-faster-kit.
+
+Everything under examples/demo/ is invented for the demo (see its
+SYNTHETIC-DATA file): the person, the company, the job postings, the study
+topic and every question. None of it describes a real person, employer,
+posting or exam.

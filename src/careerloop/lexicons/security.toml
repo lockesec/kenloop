@@ -1,0 +1,111 @@
+# Security operations: SOC, MDR, detection, response, and the AI-security edge.
+# Public vocabulary: functions, frameworks, and the products and certifications
+# postings name by name (a SOC posting asks for Splunk or CrowdStrike far more often
+# than for "SIEM"). Most words that are also ordinary English ("elastic", "windows",
+# "proxy", "sigma", "ids") appear only in an unambiguous form. A few short words are
+# kept because security postings use them bare and mean the tool or skill: "sentinel"
+# (Microsoft Sentinel; "Sentinel One" reads as SentinelOne), "playbooks", "pam",
+# "bash", "rust", "jira", "sso". Outside a security posting they can misread.
+name = "security"
+version = 2
+
+[categories]
+operations = ["siem", "edr", "xdr", "ndr", "mdr", "soar", "incident response", "incident handling",
+              "threat hunting", "alert triage", "log analysis", "detection engineering", "playbooks",
+              "security monitoring", "root cause analysis", "use case development",
+              "security operations", "dfir", "purple teaming", "red teaming", "tabletop exercises"]
+detection = ["kql", "spl", "sigma rules", "yara", "snort", "suricata", "zeek", "detection rules",
+             "correlation rules", "windows event logs", "sysmon", "netflow", "packet capture"]
+frameworks = ["mitre att&ck", "mitre d3fend", "mitre atlas", "nist csf", "nist 800-53", "nist 800-61",
+              "cis controls", "iso 27001", "soc 2", "cyber kill chain", "diamond model",
+              "owasp top 10", "owasp llm top 10", "pci dss", "hipaa", "gdpr", "fedramp", "cmmc"]
+threat_intel = ["threat intelligence", "ioc", "ttps", "stix", "taxii", "osint", "misp",
+                "threat modeling"]
+network = ["firewalls", "intrusion detection", "intrusion prevention", "vpn", "zero trust", "dns", "tcp/ip", "network security",
+           "web proxy", "reverse proxy", "waf", "dlp", "email security", "phishing analysis", "vlans"]
+endpoint = ["endpoint security", "macos", "linux", "windows server", "group policy", "wmic",
+            "lateral movement", "privilege escalation"]
+identity = ["iam", "mfa", "sso", "active directory", "entra id", "ldap", "least privilege", "pam",
+            "kerberos", "saml", "oauth", "conditional access"]
+cloud = ["cloud security", "aws", "azure", "gcp", "cspm", "cwpp", "container security", "kubernetes",
+         "cloudtrail", "guardduty", "microsoft 365", "google workspace"]
+appsec = ["vulnerability management", "penetration testing", "sast", "dast", "secure code review",
+          "cve", "cvss", "patch management", "attack surface management", "bug bounty"]
+forensics = ["digital forensics", "memory forensics", "malware analysis", "chain of custody",
+             "reverse engineering", "sandboxing", "disk forensics", "timeline analysis"]
+scripting = ["python", "powershell", "bash", "regex", "sql", "javascript", "golang", "rust", "php"]
+practice = ["tryhackme", "hackthebox", "letsdefend", "cyberdefenders", "blue team labs",
+            "capture the flag"]
+ai_security = ["prompt injection", "llm security", "model risk", "ai red teaming", "ai governance",
+               "data poisoning"]
+tools = ["splunk", "microsoft sentinel", "elastic security", "elastic stack", "elasticsearch",
+         "crowdstrike", "sentinelone", "microsoft defender", "carbon black", "qradar", "google secops",
+         "sumo logic", "cortex xdr", "palo alto networks", "fortinet", "okta", "wireshark", "tcpdump",
+         "nmap", "burp suite", "metasploit", "nessus", "qualys", "tenable", "rapid7", "velociraptor",
+         "osquery", "thehive", "cyberchef", "virustotal", "servicenow", "jira", "tines", "cribl",
+         "wazuh", "security onion", "kibana", "grafana", "terraform", "github actions"]
+certifications = ["security+", "cysa+", "network+", "casp+", "gsec", "gcih", "gcia", "gcfa", "gcfe",
+                  "oscp", "cissp", "ccsp", "ceh", "btl1", "sc-200", "az-500"]
+
+[aliases]
+"att&ck" = "mitre att&ck"
+"mitre attack" = "mitre att&ck"
+"d3fend" = "mitre d3fend"
+"security information and event management" = "siem"
+"endpoint detection and response" = "edr"
+"extended detection and response" = "xdr"
+"network detection and response" = "ndr"
+"managed detection and response" = "mdr"
+"digital forensics and incident response" = "dfir"
+"kusto" = "kql"
+"kusto query language" = "kql"
+"sigma rule" = "sigma rules"
+"sigmahq" = "sigma rules"
+"ids/ips" = "intrusion detection"
+"intrusion detection systems" = "intrusion detection"
+"intrusion prevention systems" = "intrusion prevention"
+"pcap" = "packet capture"
+"indicators of compromise" = "ioc"
+"iocs" = "ioc"
+"threat intel" = "threat intelligence"
+"cti" = "threat intelligence"
+"multi-factor authentication" = "mfa"
+"multifactor authentication" = "mfa"
+"2fa" = "mfa"
+"single sign-on" = "sso"
+"identity and access management" = "iam"
+"privileged access management" = "pam"
+"azure ad" = "entra id"
+"azure active directory" = "entra id"
+"microsoft entra" = "entra id"
+"vuln management" = "vulnerability management"
+"pen testing" = "penetration testing"
+"pentesting" = "penetration testing"
+"k8s" = "kubernetes"
+"m365" = "microsoft 365"
+"o365" = "microsoft 365"
+"office 365" = "microsoft 365"
+"sentinel" = "microsoft sentinel"
+"azure sentinel" = "microsoft sentinel"
+"defender for endpoint" = "microsoft defender"
+"microsoft defender for endpoint" = "microsoft defender"
+"mde" = "microsoft defender"
+"elk" = "elastic stack"
+"elk stack" = "elastic stack"
+"chronicle siem" = "google secops"
+"crowdstrike falcon" = "crowdstrike"
+"sentinel one" = "sentinelone"
+"sentinel-one" = "sentinelone"
+"palo alto" = "palo alto networks"
+"burp" = "burp suite"
+"comptia security+" = "security+"
+"sec+" = "security+"
+"comptia cysa+" = "cysa+"
+"owasp" = "owasp top 10"
+"ctf" = "capture the flag"
+"btlo" = "blue team labs"
+
+[extraction]
+# "SOC" names the team in most postings, not a skill; the rest are company, industry or
+# benefit words that postings capitalise (seen on live SOC postings, 2026-10-16)
+acronym_noise = ["soc", "ai", "ip", "msp", "mssp", "betterup", "soc-relevant"]
