@@ -1,0 +1,11 @@
+# Web development and APIs. Public vocabulary; extend it in HOME/lexicons/.
+name = "web"
+version = 1
+
+[categories]
+protocols = ["http", "https", "http/2", "tls", "dns", "websockets", "tcp"]
+api = ["rest", "json", "graphql", "openapi", "grpc", "webhooks"]
+security = ["oauth", "openid connect", "cors", "csrf", "xss", "rate limiting", "jwt"]
+ops = ["caching", "cdn", "load balancing", "observability", "docker", "kubernetes", "ci/cd"]
+data = ["sql", "postgresql", "redis", "message queues"]
+frontend = ["html", "css", "javascript", "typescript", "accessibility"]

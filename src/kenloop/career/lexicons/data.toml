@@ -1,0 +1,10 @@
+# Data analysis and engineering. Public vocabulary.
+name = "data"
+version = 1
+
+[categories]
+languages = ["sql", "python", "r", "scala"]
+tools = ["spark", "airflow", "dbt", "pandas", "jupyter", "excel", "tableau", "power bi"]
+methods = ["a/b testing", "regression", "statistics", "data modeling", "etl", "data quality",
+           "machine learning", "forecasting"]
+storage = ["data warehouse", "data lake", "postgresql", "parquet"]
