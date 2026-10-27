@@ -1,0 +1,9 @@
+name = "web"
+version = 1
+
+[categories]
+protocols = ["http", "https", "tls", "dns", "websockets", "http/2"]
+api = ["rest", "json", "graphql", "openapi"]
+security = ["oauth", "cors", "csrf", "rate limiting"]
+ops = ["caching", "cdn", "load balancing", "observability", "docker"]
+data = ["sql"]

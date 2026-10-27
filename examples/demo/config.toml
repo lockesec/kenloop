@@ -1,0 +1,26 @@
+# Demo settings (invented person, invented company).
+[profile]
+name = "Dana Example"
+resume = "resumes/resume.md"
+
+[ats]
+packs = ["web"]                   # resolved from HOME/lexicons/web.toml first
+do_not_claim = ["graphql"]
+
+[ats.equivalence]
+"openapi" = "rest"                # a posting's OpenAPI is covered by REST you hold
+
+[gap]
+ignore = []
+# no bucket for ops or protocols: those land in "Unmapped: web/<category>"
+bucket = [
+  {name = "Web security", match = ["oauth", "cors", "csrf", "tls", "rate limiting"], action = "study the auth and transport-security chapters"},
+]
+
+[next]
+bar = 4.0
+deadline_days = 3
+min_bucket_demand = 2.0
+
+[sources]
+targets = [{board = "fixture", org = "example-folio"}]
