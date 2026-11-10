@@ -1,0 +1,325 @@
+{
+ "concepts": {
+  "basics:request-and-response": {
+   "name": "request and response",
+   "domain": "basics",
+   "desc": "a client sends a request and a server answers it",
+   "cluster": "messages",
+   "scope": "exam",
+   "attempts": 1,
+   "correct": 1,
+   "partials": 0,
+   "streak": 1,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-15",
+   "correct_days": [
+    "2030-03-15"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "by_conf": {
+    "high": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "stability": 2.3065,
+   "difficulty": 2.1181,
+   "interval": 2,
+   "due": "2030-03-17"
+  },
+  "basics:urls": {
+   "name": "urls",
+   "domain": "basics",
+   "desc": "scheme, host, path and query",
+   "cluster": "",
+   "scope": "exam",
+   "attempts": 1,
+   "correct": 1,
+   "partials": 0,
+   "streak": 1,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-15",
+   "correct_days": [
+    "2030-03-15"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "by_conf": {
+    "med": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "stability": 2.3065,
+   "difficulty": 2.1181,
+   "interval": 2,
+   "due": "2030-03-17"
+  },
+  "basics:headers": {
+   "name": "headers",
+   "domain": "basics",
+   "desc": "metadata carried on requests and responses",
+   "cluster": "messages",
+   "scope": "exam",
+   "attempts": 1,
+   "correct": 1,
+   "partials": 0,
+   "streak": 1,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-15",
+   "correct_days": [
+    "2030-03-15"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "by_conf": {
+    "low": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "stability": 1.2931,
+   "difficulty": 5.1122,
+   "interval": 1,
+   "due": "2030-03-16"
+  },
+  "semantics:status-codes": {
+   "name": "status codes",
+   "domain": "semantics",
+   "desc": "what the response classes mean",
+   "cluster": "responses",
+   "scope": "exam",
+   "attempts": 3,
+   "correct": 3,
+   "partials": 0,
+   "streak": 3,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-15",
+   "correct_days": [
+    "2030-03-10",
+    "2030-03-12",
+    "2030-03-15"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 1,
+     "correct": 1
+    },
+    "applied": {
+     "attempts": 1,
+     "correct": 1
+    },
+    "comparison": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "by_conf": {
+    "med": {
+     "attempts": 1,
+     "correct": 1
+    },
+    "high": {
+     "attempts": 2,
+     "correct": 2
+    }
+   },
+   "stability": 23.3194,
+   "difficulty": 2.1043,
+   "interval": 23,
+   "due": "2030-04-07"
+  },
+  "semantics:methods": {
+   "name": "methods",
+   "domain": "semantics",
+   "desc": "safe and idempotent methods",
+   "cluster": "responses",
+   "scope": "exam",
+   "attempts": 3,
+   "correct": 3,
+   "partials": 0,
+   "streak": 2,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-13",
+   "correct_days": [
+    "2030-03-11",
+    "2030-03-13"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 1,
+     "correct": 1
+    },
+    "applied": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "by_conf": {
+    "high": {
+     "attempts": 2,
+     "correct": 2
+    }
+   },
+   "stability": 10.9643,
+   "difficulty": 2.1112,
+   "interval": 11,
+   "due": "2030-03-24",
+   "repeats": 1
+  },
+  "semantics:caching-headers": {
+   "name": "caching headers",
+   "domain": "semantics",
+   "desc": "cache-control and validators",
+   "cluster": "",
+   "scope": "exam",
+   "attempts": 1,
+   "correct": 0,
+   "partials": 0,
+   "streak": 0,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-14",
+   "errors": [
+    "2030-03-14: [concept-conflation] thought no-cache means never store"
+   ],
+   "by_type": {
+    "comparison": {
+     "attempts": 1,
+     "correct": 0
+    }
+   },
+   "by_conf": {
+    "high": {
+     "attempts": 1,
+     "correct": 0
+    }
+   },
+   "stability": 0.212,
+   "difficulty": 6.4133,
+   "interval": 1,
+   "due": "2030-03-15"
+  },
+  "semantics:content-negotiation": {
+   "name": "content negotiation",
+   "domain": "semantics",
+   "desc": "how a client asks for a representation",
+   "cluster": "",
+   "scope": "exam",
+   "attempts": 2,
+   "correct": 0,
+   "partials": 0,
+   "streak": 0,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-16",
+   "errors": [
+    "2030-03-14: [term-confusion] said Content-Type lists what the client accepts",
+    "2030-03-16: [term-confusion] mixed up Accept and Content-Type again"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 2,
+     "correct": 0
+    }
+   },
+   "by_conf": {
+    "med": {
+     "attempts": 1,
+     "correct": 0
+    },
+    "low": {
+     "attempts": 1,
+     "correct": 0
+    }
+   },
+   "stability": 0.1128,
+   "difficulty": 8.8063,
+   "interval": 1,
+   "due": "2030-03-17"
+  },
+  "semantics:cookies": {
+   "name": "cookies",
+   "domain": "semantics",
+   "desc": "state carried between requests",
+   "cluster": "",
+   "scope": "exam",
+   "attempts": 2,
+   "correct": 2,
+   "partials": 0,
+   "streak": 0,
+   "guesses": 0,
+   "hints": 1,
+   "last_seen": "2030-03-17",
+   "by_type": {
+    "recall": {
+     "attempts": 2,
+     "correct": 0
+    }
+   },
+   "stability": 0.1009,
+   "difficulty": 8.8063,
+   "interval": 1,
+   "due": "2030-03-18"
+  },
+  "transport:keep-alive": {
+   "name": "keep-alive",
+   "domain": "transport",
+   "desc": "reusing one connection for several requests",
+   "cluster": "",
+   "scope": "exam",
+   "attempts": 3,
+   "correct": 3,
+   "partials": 0,
+   "streak": 1,
+   "guesses": 0,
+   "hints": 0,
+   "last_seen": "2030-03-14",
+   "correct_days": [
+    "2030-03-14"
+   ],
+   "by_type": {
+    "recall": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "by_conf": {
+    "high": {
+     "attempts": 1,
+     "correct": 1
+    }
+   },
+   "stability": 2.3065,
+   "difficulty": 2.1181,
+   "interval": 2,
+   "due": "2030-03-16",
+   "repeats": 2
+  },
+  "transport:header-compression": {
+   "name": "header compression",
+   "domain": "transport",
+   "desc": "shrinking repeated headers",
+   "cluster": "",
+   "scope": "depth"
+  }
+ }
+}

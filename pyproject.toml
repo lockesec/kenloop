@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kenloop"
+version = "0.1.0"
+description = "Do you ken? A study tool that grows with you: an AI assistant teaches, its memory carries context, and kenloop keeps an honest record of what you can answer on your own."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES"]
+requires-python = ">=3.9"
+dependencies = ["tomli>=1.1; python_version < '3.11'"]
+
+keywords = ["learning", "spaced-repetition", "fsrs", "socratic-dialogue", "study-plan", "job-search", "resume"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: End Users/Desktop",
+    "Environment :: Console",
+    "Operating System :: POSIX",
+    "Development Status :: 4 - Beta",
+    "Topic :: Education",
+    "Topic :: Office/Business",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7", "hypothesis>=6.131"]
+
+[project.urls]
+Homepage = "https://github.com/lockesec/kenloop"
+Documentation = "https://github.com/lockesec/kenloop/tree/main/docs"
+Issues = "https://github.com/lockesec/kenloop/issues"
+
+[project.scripts]
+kenloop = "kenloop.cli:main"
+ken = "kenloop.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"kenloop.career" = ["lexicons/*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

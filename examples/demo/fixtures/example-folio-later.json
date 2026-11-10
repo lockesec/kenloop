@@ -1,0 +1,45 @@
+[
+ {
+  "ext_id": "q-101",
+  "title": "Web Developer",
+  "location": "Remote",
+  "url": "https://jobs.example.invalid/example-folio/q-101",
+  "jd": "Example Folio Books is looking for a web developer to build pages and services for our online bookstore. You will design REST endpoints that return JSON over HTTP. You will add OAuth sign-in for readers and configure CORS for the storefront. Comfort writing SQL queries against the catalogue is expected."
+ },
+ {
+  "ext_id": "q-102",
+  "title": "API Engineer",
+  "location": "Remote",
+  "url": "https://jobs.example.invalid/example-folio/q-102",
+  "jd": "Example Folio Books needs an engineer for its partner interfaces.\n\nWhat you'll do\n- Keep every partner integration healthy\n\nRequirements\n- 3+ years of experience building partner integrations\n- REST endpoints documented with OpenAPI\n- OAuth for partner sign-in\n- Terraform for the partner sandbox\n\nNice to have\n- Rate limiting, so that no partner can overload the catalogue\n"
+ },
+ {
+  "ext_id": "q-103",
+  "title": "Frontend Engineer",
+  "location": "Remote",
+  "url": "https://jobs.example.invalid/example-folio/q-103",
+  "jd": "Build the storefront that readers use every day. You will handle CORS and CSRF protection, tune HTTP caching for fast pages, and keep live stock counts fresh over websockets."
+ },
+ {
+  "ext_id": "q-105",
+  "title": "Senior Staff Engineer",
+  "location": "Remote",
+  "url": "https://jobs.example.invalid/example-folio/q-105",
+  "jd": "Lead the design of a GraphQL gateway and own TLS policy for every service."
+ },
+ {
+  "ext_id": "q-106",
+  "title": "Support Engineer",
+  "location": "Remote",
+  "url": "https://jobs.example.invalid/example-folio/q-106",
+  "jd": "Help partners diagnose integration problems: read HTTP traces, check DNS records, and debug TLS handshakes."
+ },
+ {
+  "ext_id": "q-107",
+  "title": "Integration Engineer",
+  "location": "Remote",
+  "url": "https://jobs.example.invalid/example-folio/q-107",
+  "jd": "Connect Example Folio Books to publisher systems through REST interfaces secured with OAuth and TLS.",
+  "deadline": "2030-03-22"
+ }
+]
