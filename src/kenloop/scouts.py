@@ -43,6 +43,8 @@ def read_scouts(cfg) -> tuple:
 def scout(cfg, topic, concept, line, kind, why, url="") -> dict:
     """Store an undecided, predicted branch. Nothing reaches the syllabus or `next` until it is
     offered (when the concept is studied) and decided."""
+    H.one_line(line, "the scout line")
+    H.one_line(why, "--why")
     have, problems = read_scouts(cfg)
     if problems:
         raise NotEvaluable(f"{len(problems)} unreadable line(s) in scouts.jsonl (first: {problems[0]}); "

@@ -92,10 +92,13 @@ def exam(cfg, slug, n=20) -> int:
     picks = []
     for d in sorted(by_dom):
         pool = sorted(by_dom[d], key=lambda kv: (kv[1].get("last_seen", ""), kv[0]))
+        drawn: dict = {}
         for i in range(alloc[d]):
             cid, c = pool[i % len(pool)]
             qs = bank.get(cid, [])
-            picks.append((cid, c, qs[(c.get("attempts", 0) + i) % len(qs)] if qs else None))
+            k = drawn[cid] = drawn.get(cid, -1) + 1        # this concept's k-th draw in the exam
+            # each banked question once; past them, a fresh question, never a repeat
+            picks.append((cid, c, qs[(c.get("attempts", 0) + k) % len(qs)] if k < len(qs) else None))
     depth = len(L.load_state(cfg, slug)["concepts"]) - len(cons)
     print(f"practice exam: {slug}, {len(picks)} question(s) across {len(by_dom)} domain(s); pass at {EXAM_PASS}%"
           + (f"; {depth} depth-scope concept(s) left out" if depth else ""))
@@ -103,7 +106,9 @@ def exam(cfg, slug, n=20) -> int:
     print(f"  {H.PROG} record {slug} CONCEPT ok|partial|miss --mode exam\n")
     for i, (cid, c, q) in enumerate(picks, 1):
         print(f"{i:>3}. [{c.get('domain', '')}] {c.get('name', cid)} ({cid})")
-        print(f"       Q: {q['q']}" if q else f"       no banked question: write one from \"{c.get('desc', '')}\"")
+        print(f"       Q: {q['q']}" if q else
+              f"       {'a new question (its banked ones are above)' if bank.get(cid) else 'no banked question'}: "
+              f"write one from \"{c.get('desc', '')}\"")
     print(f"\nAt {EXAM_PASS}% or more the milestone is met; below it, the misses are the next drill "
           f"(`{H.PROG} quiz {slug} --weak`).")
     return L.log_verdict(cfg, slug)

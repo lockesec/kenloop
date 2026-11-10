@@ -56,7 +56,8 @@ def select(state, n=5, weak=False, concept=None, bank_=None, waiting=(), seen_to
 def seen_today(cfg, slug) -> set:
     """Concepts with a row on the log dated today: any further answer today is a repeat."""
     today = H.today().isoformat()
-    held = {r["concept"] for r in L.read_log(cfg, slug)[0] if r["date"] == today}
+    names = L.renames(cfg, slug)          # a row logged under an old name is the same concept
+    held = {L.canonical(r["concept"], names) for r in L.read_log(cfg, slug)[0] if r["date"] == today}
     for cid, c in L.load_state(cfg, slug)["concepts"].items():
         if cid not in held and c.get("same") and L.twin_seen(cfg, slug, cid, today):
             held.add(cid)

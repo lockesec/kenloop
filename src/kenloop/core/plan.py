@@ -143,6 +143,9 @@ def insert_concepts(text: str, new_lines: list) -> str:
 
 
 def bank(cfg, slug, concept, q, a, ref, why="", qtype="", distractors=()) -> int:
+    for value, what in ((q, "--q"), (a, "--a"), (ref, "--ref"), (why, "--why"),
+                        *((d, "--d") for d in distractors)):
+        H.one_line(value, what)
     state = L.load_state(cfg, slug)
     cid = L.resolve_concept(state, concept)
     if not ref:

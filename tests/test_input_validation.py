@@ -265,3 +265,34 @@ def test_quiz_stdin_that_is_not_utf8_is_named(home, monkeypatch, capsys):
     assert "internal error" not in out.err and code in (0, 2)
     if code == 2:
         assert "UTF-8" in out.err
+
+
+def test_non_latin_names_get_distinct_ascii_ids():
+    from kenloop.core import learn as L
+    from kenloop.core.names import slugify
+    a, b = L.concept_id("net", "日本語"), L.concept_id("net", "中文")
+    assert a != b and a.startswith("net:") and len(a) > len("net:")
+    assert a.isascii() and b.isascii()
+    assert slugify("Café Ünï") == "cafe-uni"                     # Latin accents are unchanged
+    assert slugify("Port 日本") != slugify("Port 中文")
+
+
+def test_two_non_latin_concepts_in_one_domain_sync(home):
+    assert cli.main(["--home", str(home), "plan", "t1", "--goal", "g"]) == 0
+    (home / "topics" / "t1" / "syllabus.md").write_text("## Concepts\n- net :: 日本語 :: a\n- net :: 中文 :: b\n")
+    assert cli.main(["--home", str(home), "sync", "t1"]) == 0
+
+
+@pytest.mark.parametrize("line", ["- !!! :: Gamma :: g", "- net :: !!! :: g"])
+def test_a_domain_or_name_with_no_letters_is_refused(home, line):
+    assert cli.main(["--home", str(home), "plan", "t1", "--goal", "g"]) == 0
+    (home / "topics" / "t1" / "syllabus.md").write_text(f"## Concepts\n{line}\n")
+    assert cli.main(["--home", str(home), "sync", "t1"]) == 64
+
+
+@pytest.mark.parametrize("cov,bad", [("x", True), (True, True), (-1, True), (101, True), (math.nan, True),
+                                     (None, False), (0, False), (73, False), (100, False)])
+def test_a_coverage_pct_that_is_not_a_percentage_is_named(cov, bad):
+    """`coverage_pct: "x"` once crashed `next`, `session` and `jobs rank` (unary minus on text)."""
+    m = {"company": "A", "role": "B", "status": "found", "coverage_pct": cov}
+    assert bool(R.meta_problem(m)) is bad

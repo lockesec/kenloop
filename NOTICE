@@ -1,4 +1,5 @@
 kenloop
+Copyright 2026 locke
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 src/kenloop/core/fsrs.py re-implements the FSRS-6 scheduling formulas and default

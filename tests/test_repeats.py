@@ -1,7 +1,11 @@
 """Only the first look at a concept on a day can earn credit. Later rows that day are counted
 (attempts, correct, repeats) but move no streak, retention day, breadth, confidence or schedule:
 after a quiz, a miss, a hint, a dialogue or a read-through, the learner has seen it."""
+import json
+
 import pytest
+
+from kenloop import cli
 
 from kenloop.core import learn as L
 from kenloop.core import reviews as R
@@ -149,3 +153,21 @@ def test_a_correct_repeat_after_teaching_is_scheduled_for_tomorrow(cfg, t):
     L.record(cfg, "t", "d:c0", "ok", mode="teach", quiet=True)
     L.record(cfg, "t", "d:c0", "ok", quiet=True)
     assert c0(cfg)["due"] == "2030-03-21"
+
+
+def test_an_answer_after_a_same_day_rename_is_still_a_repeat(home, capsys):
+    """Only the first look on a day earns credit, whatever the concept is called now."""
+    assert cli.main(["--home", str(home), "plan", "t1", "--goal", "g"]) == 0
+    syl = home / "topics" / "t1" / "syllabus.md"
+    syl.write_text("## Concepts\n- net :: Alpha :: a\n")
+    assert cli.main(["--home", str(home), "sync", "t1"]) in (0, 1)
+    assert cli.main(["--home", str(home), "record", "t1", "net:alpha", "ok"]) == 0
+    syl.write_text("## Concepts\n- net :: Alfa :: a\n")
+    assert cli.main(["--home", str(home), "rename", "t1", "net:alpha", "net:alfa"]) == 0
+    capsys.readouterr()
+    assert cli.main(["--home", str(home), "record", "t1", "net:alfa", "ok"]) == 0
+    out = capsys.readouterr().out
+    assert "DRIFT" not in out, out
+    state = json.loads((home / "topics" / "t1" / "concepts.json").read_text())
+    assert state["concepts"]["net:alfa"]["streak"] == 1, state["concepts"]["net:alfa"]
+    assert cli.main(["--home", str(home), "rebuild", "t1", "--check"]) == 0

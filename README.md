@@ -22,6 +22,11 @@ An AI can help you study; only what you answer without it counts.
 
 Optional job-search and exam tools connect your study to a practical goal.
 
+How it is built: a plain-Python CLI with no AI calls and plain files for every record; over
+2,200 tests, property tests among them; a scheduler checked against the reference py-fsrs
+implementation ([DESIGN.md](DESIGN.md)); and one rule throughout: when kenloop cannot read
+what it needs, it says NOT EVALUABLE (exit 2) instead of reporting a clean result.
+
 ## See it in action
 
 The offline demo uses invented data. This excerpt shows a changed belief, a review
@@ -79,7 +84,7 @@ For the intended workflow, use an assistant that can read your kenloop files and
 with persistent memory configured in that assistant. kenloop makes no AI calls and does not
 install or configure a memory service. It also works on its own with a question bank.
 
-Requires Python 3.9+. Install in a virtual environment:
+Requires Python 3.11+. Install in a virtual environment:
 
 ```sh
 python3 -m venv .venv
@@ -110,6 +115,8 @@ For quizzes, use the [tutor rules](docs/tutor-rules.md); once you have a questio
 prints the instructions and format for building that bank.
 
 With Claude Code, copy the [skills/](skills/) folder's `ken-*` skills into `~/.claude/skills/`.
+The skills, the rule documents and the demo live in the repository, not in the installed
+package, so clone it for them: `git clone https://github.com/lockesec/kenloop`.
 `ken-tutor` is the router: it starts each session with `ken session` (which shows your learner profile,
 `ken profile`, first), picks the mode from what you
 ask and how the topic is set (place, teach, dialogue, drill, exam, scout), says which, and hands
@@ -157,8 +164,8 @@ After you pass, `ken settings TOPIC --keep-studying on` keeps the material on th
   reported as not evaluable, not clean. See [which commands report this](docs/commands.md#when-a-command-cannot-look-exit-2).
 
 No accounts are required. The tool's only network use is fetching public job boards.
-It uses the Python standard library, plus `tomli` on Python 3.9–3.10.
-CI covers Python 3.9–3.14 and checks the demo transcript.
+It uses the Python standard library only.
+CI covers Python 3.11–3.14 and checks the demo transcript.
 
 Exit codes: **0** clean/done · **1** findings · **2** not evaluable or internal error ·
 **3** derived-state drift · **64** usage error.

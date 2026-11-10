@@ -48,3 +48,12 @@ def test_a_topic_with_no_exam_scope_is_not_evaluable(cfg, home, capsys):
 
 def test_the_cli_runs_it(home, cert):
     assert run(home, "cert", "exam", "cert", "--n", "4")[0] == 0
+
+
+def test_a_banked_question_is_never_printed_twice_in_one_exam(cfg, cert, capsys):
+    """Four concepts and twenty draws: the one banked question is asked once; the other draws
+    on that concept ask for a new question, so the pass mark is not computed over repeats."""
+    assert certs.exam(cfg, "cert", n=20) == 0
+    out = capsys.readouterr().out
+    assert out.count("Q: Which port does HTTPS use?") == 1, out
+    assert len(re.findall(r"^\s+\d+\. \[", out, re.M)) == 20

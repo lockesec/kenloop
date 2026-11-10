@@ -198,6 +198,13 @@ def load_config(cfg, slug) -> dict:
         if k in data and not isinstance(data[k], str):
             raise NotEvaluable(f"{tdir(cfg, slug) / 'topic.json'}: `{k}` must be text, not "
                                f"{type(data[k]).__name__}; fix it by hand")
+    for k in (*KEY_ALIASES, *KEY_ALIASES.values()):       # deadline, complete and their old names
+        if data.get(k):
+            try:
+                H.iso_date(data[k])
+            except ValueError:
+                raise NotEvaluable(f"{tdir(cfg, slug) / 'topic.json'}: `{k}` is {data[k]!r}, not a real "
+                                   f"YYYY-MM-DD date, so the schedule cannot read it; fix it by hand") from None
     for k, allowed in CHOICES.items():
         if k in data and data[k] not in allowed:
             raise NotEvaluable(f"{tdir(cfg, slug) / 'topic.json'}: `{k}` must be one of {', '.join(allowed)}, "
@@ -259,7 +266,8 @@ def twin_seen(cfg, slug, cid, day) -> list:
     out = []
     for t, k, _n, _b in twins(cfg, slug, cid):
         try:
-            if any(r["date"] == day and r["concept"] == k for r in read_log(cfg, t)[0]):
+            names = renames(cfg, t)
+            if any(r["date"] == day and canonical(r["concept"], names) == k for r in read_log(cfg, t)[0]):
                 out.append(t)
         except NotEvaluable:
             continue
@@ -299,7 +307,23 @@ def load_state(cfg, slug) -> dict:
     if (not isinstance(data, dict) or not isinstance(data.get("concepts"), dict)
             or not all(isinstance(c, dict) for c in data["concepts"].values())):
         raise NotEvaluable(f"{tdir(cfg, slug) / 'concepts.json'} is damaged; `{H.PROG} rebuild {slug}`")
+    for cid, c in data["concepts"].items():
+        for k, v in c.items():
+            want = _FIELD_TYPES.get(k)
+            if want and (isinstance(v, bool) or not isinstance(v, want)):
+                raise NotEvaluable(f"{tdir(cfg, slug) / 'concepts.json'}: {cid} `{k}` is {v!r}, not "
+                                   f"{'/'.join(t.__name__ for t in want)}; `{H.PROG} rebuild {slug}` "
+                                   "derives it again from the log")
     return data
+
+
+# the type of each derived field every reader relies on (a bool is never a number here)
+_FIELD_TYPES = {**{k: (int,) for k in ("attempts", "correct", "guesses", "hints", "interval",
+                                       "partials", "repeats", "streak")},
+                **{k: (int, float) for k in ("stability", "difficulty")},
+                **{k: (str,) for k in ("due", "last_seen", "name", "desc", "domain", "scope", "cluster")},
+                **{k: (list,) for k in ("correct_days", "errors")},
+                **{k: (dict,) for k in ("by_conf", "by_type")}}
 
 
 def save_state(cfg, slug, state) -> None:
@@ -315,7 +339,12 @@ def name_slug(name: str) -> str:
 
 
 def concept_id(domain: str, name: str) -> str:
-    return f"{slugify(domain)}:{name_slug(name)}" if domain else name_slug(name)
+    n = name_slug(name)
+    if not n:
+        raise UsageError(f"concept name {name!r} has no letters or digits to make an id from")
+    if domain and not slugify(domain):
+        raise UsageError(f"domain {domain!r} has no letters or digits to make an id from")
+    return f"{slugify(domain)}:{n}" if domain else n
 
 
 def parse_syllabus(text: str) -> list:
@@ -912,7 +941,8 @@ def record(cfg, slug, concept, result, note="", guess=False, confidence="", hint
     if damaged:     # a row appended now would be replayed against a record that cannot be read in full
         raise NotEvaluable(f"{slug}: {len(damaged)} damaged log row(s) (first: {damaged[0]}); nothing recorded. "
                            f"Fix the line, or `{H.PROG} rebuild {slug} --skip-damaged`, then record again")
-    repeat = any(r["date"] == row["date"] and r["concept"] == cid for r in earlier)
+    names = renames(cfg, slug)        # a row logged under an old name is the same concept
+    repeat = any(r["date"] == row["date"] and canonical(r["concept"], names) == cid for r in earlier)
     seen_in = twin_seen(cfg, slug, cid, row["date"])
     if seen_in:          # decided now and kept on the row, so replay never has to read another topic
         row["seen_in"] = seen_in

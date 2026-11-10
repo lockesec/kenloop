@@ -12,7 +12,7 @@ does the reasoning and curiosity is graded like any answer (arXiv 2510.20635: se
 improved reasoning; self-reported curiosity was unreliable). It needs footing: on a field they
 barely know, teach first (`ken-climb` at height 0-1).
 
-Read `docs/dialogue-rules.md` (the dialogue contract) once. `ken talk <topic> [concept] --protocol`
+Read the dialogue contract once (`docs/dialogue-rules.md` in a clone of kenloop, or https://github.com/lockesec/kenloop/blob/main/docs/dialogue-rules.md). `ken talk <topic> [concept] --protocol`
 prints the concept, what humanity knows about it (settled, frontier, open), how their reasoning
 went last time, the method and the transcript path.
 

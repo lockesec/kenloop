@@ -20,7 +20,13 @@ def slugify(s: str) -> str:
     import unicodedata
     t = (s or "").translate(_TRANSLIT)
     t = "".join(c for c in unicodedata.normalize("NFKD", t) if not unicodedata.combining(c))
-    return re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")
+    slug = re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")
+    # Letters outside Latin script (日本語, Ελληνικά, Русский) would be dropped, and every such
+    # name would share one slug; an ASCII punycode tail of the whole name keeps them apart.
+    if any(c.isalnum() and not c.isascii() for c in t):
+        tail = "xn-" + unicodedata.normalize("NFC", (s or "").lower()).encode("punycode").decode("ascii")
+        slug = "-".join(x for x in (slug, re.sub(r"[^a-z0-9]+", "-", tail.lower()).strip("-")) if x)
+    return slug
 
 
 SAFE_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,99}$")

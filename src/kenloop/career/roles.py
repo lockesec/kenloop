@@ -105,6 +105,10 @@ def meta_problem(m: dict) -> str:
         return f"field 'fit_score' is {fit!r}, not a number or null"
     if fit is not None and not 1.0 <= fit <= 5.0:          # also false for NaN
         return f"field 'fit_score' is {fit!r}, outside 1-5"
+    cov = m.get("coverage_pct")
+    if cov is not None and (isinstance(cov, bool) or not isinstance(cov, (int, float))
+                            or not 0 <= cov <= 100):       # the comparison is also false for NaN
+        return f"field 'coverage_pct' is {cov!r}, not a percentage from 0 to 100 or null"
     for k in ("company", "role"):
         if not isinstance(m[k], str):
             return f"field {k!r} is {m[k]!r}, not text"

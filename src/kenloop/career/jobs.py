@@ -201,7 +201,7 @@ def discover(cfg, board=None, org=None, all_targets=False, keyword=None, do_inta
     by_job = {}
     for s, m in scanned:
         _remember(cfg, by_job, m.get("org") or m.get("company"), m.get("role"), m.get("location"), s, m)
-    n_dup, taken_here = 0, {}
+    n_dup, taken_here, this_run = 0, {}, set()
     for p in damaged:
         print(f"DAMAGED {p}: not read, so a posting it holds may be listed as new")
     for t in targets:
@@ -227,8 +227,13 @@ def discover(cfg, board=None, org=None, all_targets=False, keyword=None, do_inta
             if exclude_senior and S.is_senior(p["title"]):
                 n_senior += 1
                 continue
+            key = (p["board"], p["org"], p["ext_id"])
+            if p["ext_id"] and key in this_run:     # paged search can repeat a posting across pages
+                print(f"        {p['board']}:{p['org']}  {p['ext_id']}  listed twice by the board; taken once")
+                continue
+            this_run.add(key)
             n_seen += 1
-            known = (p["board"], p["org"], p["ext_id"]) in existing and p["ext_id"]
+            known = key in existing and p["ext_id"]
             mark = "known" if known else "new"
             print(f"{mark:7} {p['board']}:{p['org']}  {p['ext_id'] or '-':10} {p['title']}  [{p['location']}]")
             if known:

@@ -1,8 +1,8 @@
 # Contributing
 
 - `python -m pip install -e ".[test]" fsrs && python -m pytest -q` (the `test` extra brings `pytest` and `hypothesis`)
-  (`fsrs` is py-fsrs, the parity oracle for the scheduler; it needs Python
-  3.10 or newer, and without it that test skips, visibly).
+  (`fsrs` is py-fsrs, the parity oracle for the scheduler; without it that test
+  skips, visibly).
 - FSRS parity figures: `PYTHONPATH=src python benchmarks/fsrs_parity.py` (needs `fsrs`; fixed seed;
   the methodology is in the script's docstring). README and DESIGN quote its output.
 - `sh examples/demo.sh` must still walk the whole loop; `tests/test_demo.py`

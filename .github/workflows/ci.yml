@@ -8,10 +8,10 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-24.04   # ubuntu-latest (26.04) has no Python 3.9
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -24,7 +24,6 @@ jobs:
           python -m pip install --require-hashes -r requirements-ci.txt
           python -m pytest -q
       - name: Scheduler parity against py-fsrs (the oracle must run, not skip)
-        if: matrix.python != '3.9'
         env:
           KENLOOP_REQUIRE_ORACLE: "1"
         run: python -m pytest -q tests/test_fsrs_oracle.py

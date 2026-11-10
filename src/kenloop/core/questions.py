@@ -123,6 +123,7 @@ def ask(cfg, question=None) -> int:
 
 
 def rung(cfg, qid, topic, line=None, existing=None) -> int:
+    H.one_line(line, "the rung line")
     events, problems = read(cfg)
     if problems:
         return _verdict(problems)

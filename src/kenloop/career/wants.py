@@ -84,7 +84,9 @@ _CODE = rf"(?<![A-Za-z])(?:{_CODES})(?![A-Za-z])"
 _NUM = r"(?<![\d.,])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*([kK])?"
 _DASH = r"\s*(?:-|–|—|to|and)\s*"        # "and" only after "between" (checked in pay_ranges)
 PAY_RE = re.compile(
-    rf"(?:(?P<code>{_CODE})\s*)?(?P<sym>{_SYM})?\s*{_NUM}(?:\s*{_CODE})?{_DASH}(?:{_SYM}|{_CODE}\s*)?\s*{_NUM}",
+    # whitespace is read only after a code or symbol: a bare leading \s* was tried from every
+    # position in a run of spaces, quadratic on board text
+    rf"(?:(?P<code>{_CODE})\s*)?(?:(?P<sym>{_SYM})\s*)?{_NUM}(?:\s*{_CODE})?{_DASH}(?:{_SYM}|{_CODE}\s*)?\s*{_NUM}",
     re.IGNORECASE)
 HOURLY_RE = re.compile(r"(?:per\s+hour|an\s+hour|/\s*h(?:ou)?r\b|hourly)", re.IGNORECASE)
 MONTHLY_RE = re.compile(r"(?:per\s+month|a\s+month|/\s*mo(?:nth)?\b|monthly)", re.IGNORECASE)
@@ -106,7 +108,7 @@ _NONPAY_AFTER = re.compile(rf"\s*(?:{_CODE}\s*)?(?:sign[- ]?on|signing|relocatio
                            rf"equity|stock|rsus?)\b", re.IGNORECASE)
 
 
-_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\S+\.(?:pdf|html?|aspx?|php)\b", re.IGNORECASE)
+_URL_RE = re.compile(r"(?:https?://|www\.)\S+|(?<!\S)\S+\.(?:pdf|html?|aspx?|php)\b", re.IGNORECASE)
 
 
 def _amount(num: str, k) -> float:

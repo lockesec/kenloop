@@ -297,6 +297,8 @@ def branch(cfg, slug, frm, line=None, before=False, topic=None, title=None, by=N
     """A gap found while studying `frm`: a piece of it (default), a concept learned before it
     (--before), with --topic a topic of its own whose origin names where it came from, or only a
     note or a declined offer. Every decision is a row of branches.jsonl, and `by` says who raised it."""
+    H.one_line(line, "the branch line")
+    H.one_line(gap, "--gap")
     state = L.load_state(cfg, slug)
     cons = state["concepts"]
     fid = L.resolve_concept(state, frm)

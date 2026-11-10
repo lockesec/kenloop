@@ -338,3 +338,38 @@ def test_a_name_that_will_not_read_back_is_excluded_not_looped(tmp_path, capsys)
     _paste(h, out)
     assert {e["rule"]: e for e in loop.evaluate(cfg)}["graduation"]["status"] == "not fired"
     assert "a ~~b~~ c" in err
+
+
+@pytest.mark.parametrize("key,value", [("deadline", "2030-13-45"), ("complete", "junk"),
+                                       ("exam_date", "soon"), ("passed", "2030-02-30")])
+def test_a_date_field_that_is_not_a_real_date_is_named_not_obeyed(home, key, value, capsys):
+    """`complete: junk` once took a topic off the schedule while validate and doctor said clean."""
+    assert cli.main(["--home", str(home), "plan", "t1", "--goal", "g"]) == 0
+    p = home / "topics" / "t1" / "topic.json"
+    data = json.loads(p.read_text())
+    data[key] = value
+    p.write_text(json.dumps(data))
+    capsys.readouterr()
+    for argv in (["due"], ["validate", "t1"], ["doctor"]):
+        code = cli.main(["--home", str(home), *argv])
+        out = capsys.readouterr()
+        assert code == 2 and key in out.out + out.err and "YYYY-MM-DD" in out.out + out.err, (argv, out)
+
+
+@pytest.mark.parametrize("bad", [{"attempts": "x"}, {"streak": "a"}, {"due": 5}, {"stability": True},
+                                 {"correct_days": "2030-01-01"}, {"by_type": []}])
+def test_concept_fields_of_the_wrong_type_name_the_file_and_the_fix(home, bad, capsys):
+    assert cli.main(["--home", str(home), "plan", "t1", "--goal", "g"]) == 0
+    (home / "topics" / "t1" / "syllabus.md").write_text("## Concepts\n- net :: Alpha :: a\n")
+    assert cli.main(["--home", str(home), "sync", "t1"]) in (0, 1)
+    p = home / "topics" / "t1" / "concepts.json"
+    data = json.loads(p.read_text())
+    data["concepts"]["net:alpha"].update(bad)
+    p.write_text(json.dumps(data))
+    capsys.readouterr()
+    for argv in (["next"], ["doctor"], ["validate", "t1"], ["due"]):
+        code = cli.main(["--home", str(home), *argv])
+        out = capsys.readouterr()
+        text = out.out + out.err
+        assert "internal error" not in text and "concepts.json" in text, (argv, text)
+        assert code == 2 or (argv == ["next"] and "rebuild t1" in text), (argv, code, text)

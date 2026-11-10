@@ -153,5 +153,13 @@ def read_json(path: Path, what: str):
         raise NotEvaluable(f"{what} {path} is damaged ({e}); fix or restore it") from e
 
 
+def one_line(value, what: str):
+    """``value`` unchanged, or a UsageError when it holds a line break: it becomes one line of a
+    Markdown file, where a newline would start a section or an entry of its own."""
+    if isinstance(value, str) and re.search(r"[\r\n\v\f\x1c-\x1e\x85  ]", value):
+        raise UsageError(f"{what} must be one line (it holds a line break)")
+    return value
+
+
 def warn(msg: str) -> None:
     print(msg, file=sys.stderr)

@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kenloop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Do you ken? A study tool that grows with you: an AI assistant teaches, its memory carries context, and kenloop keeps an honest record of what you can answer on your own."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES"]
-requires-python = ">=3.9"
-dependencies = ["tomli>=1.1; python_version < '3.11'"]
+authors = [{ name = "locke" }]
+requires-python = ">=3.11"
+dependencies = []
 
 keywords = ["learning", "spaced-repetition", "fsrs", "socratic-dialogue", "study-plan", "job-search", "resume"]
 classifiers = [

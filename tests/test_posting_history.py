@@ -157,3 +157,12 @@ def test_an_old_role_with_a_raw_text_hash_is_compared_by_its_stored_text(home, c
     board(home, "acme", [dict(P1, jd="Requirements \n\n- Splunk\n- REST\n\n")])
     _, out = discover(home, capsys)
     assert "CHANGED" not in out
+
+
+def test_a_board_that_lists_one_posting_twice_takes_it_in_once(home, capsys):
+    """Paged search can repeat a posting across pages; the second copy is noted, not a crash."""
+    board(home, "acme", [P1, dict(P1)])
+    code, out = discover(home, capsys)
+    assert code == 0, out
+    assert "listed twice" in out
+    assert len(list((home / "roles").iterdir())) == 1

@@ -1,6 +1,25 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.1 (2026-11-09)
+
+- Python 3.11 or newer is required (3.9 and 3.10 are end-of-life). CI tests 3.11 to 3.14 on `ubuntu-latest`.
+- **Author.** The package metadata and NOTICE name the author, locke.
+- **The same-day rule follows renames.** An answer after `rename` on the same day is a
+  repeat, as it would be under the old name.
+- **Damage is named, not a crash.** A concept field or a role's `coverage_pct` of the wrong
+  type, and a `deadline` or `complete` that is not a real date, are NOT EVALUABLE with the
+  file and the fix; a date typo no longer takes a topic off the schedule.
+- **One-line inputs.** `bank`, `branch`, `rung` and `scout` refuse a value holding a line
+  break instead of writing a second section into the file.
+- **Practice exams** never print a banked question twice; extra draws ask for a new one.
+- **Job search.** A board that lists a posting twice no longer stops `discover --intake`;
+  pay parsing stays linear on long board text.
+- **Concept ids** for names outside Latin script are distinct (an ASCII punycode tail),
+  and a domain or name with no letters is refused.
+- **Docs.** The skills point at the rule documents by URL; the README says what a clone
+  adds over the package and how the tool is built; `ken validate` is back in the command list.
+
+## 0.1.0 (2026-11-09)
 
 First public release, Apache-2.0. The command is `ken` (`kenloop` also works). How it was built and
 what its reviews found: [DESIGN.md](DESIGN.md).

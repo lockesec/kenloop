@@ -6,7 +6,7 @@ modes: [practice, diagnose]
 
 # ken-drill
 
-Follow `docs/tutor-rules.md` (question craft, hints one rung at a time, confidence before the
+Follow the tutor rules (`docs/tutor-rules.md` in a clone of kenloop, or https://github.com/lockesec/kenloop/blob/main/docs/tutor-rules.md) (question craft, hints one rung at a time, confidence before the
 answer, one scored attempt per concept per day, true/false safety). The pieces:
 
 - What to ask: `ken due <topic>` or `ken quiz <topic>`; weak first: `ken quiz <topic> --weak`.

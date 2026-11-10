@@ -52,7 +52,8 @@ ken map [SLUG]                            concepts as wholes and their pieces, b
                                           waiting (and on what); then the frontier, what is ready to study
 ken rename SLUG OLD NEW                   after renaming a concept's syllabus line: its history, links,
                                           bank section and note follow the new id (the log is not rewritten)
-                                         validate: exit 1 on failures, 2 if a log row is damaged
+ken validate [SLUG]                       the syllabus, bank, links and log: exit 1 on failures, 2 if a log
+                                          row is damaged
 
 # reasoning and questions
 ken close SLUG [--three T]... [--fuzzy F] [--perceived 1-5|WORDS] [--idea C]... [--minutes N --chunks N --acts N --why N --what N --woven N --digressions N]
