@@ -7,10 +7,11 @@ no text inside the bottom margin. Missing tools are NOT EVALUABLE, never a pass.
 PDFs live in one folder per role under ``[build] pdf_root`` (default ``pdf``),
 filed by whether the employer has them:
 
-- ``sent/<slug>``  applied, interviewing, offer, rejected: the record of what was
-  submitted. ``build`` refuses to write here, and nothing overwrites it.
+- ``sent/<slug>``  applied, interviewing, offer, rejected, and any role that was applied to and
+  later closed or passed: the record of what was submitted. ``build`` refuses to write here, and
+  nothing overwrites it.
 - ``ready/<slug>`` everything not sent yet.
-- ``old/<slug>``   roles that ended without sending (passed, closed).
+- ``old/<slug>``   roles that ended without sending (passed or closed, never applied).
 
 ``jobs status`` moves the folder when the role crosses a line.
 """
@@ -35,8 +36,16 @@ BOTTOM_MARGIN_PT = 18.0     # 0.25in, the print-safe floor
 MARGIN_SLACK_PT = 2.0
 
 
-def bucket(status: str) -> str:
-    return "sent" if status in SENT_STATES else "old" if status in OLD_STATES else "ready"
+def bucket(status: str, applied: bool = False) -> str:
+    """sent: the employer has the PDFs (a sent status, or the role was applied to and later closed,
+    passed or rejected); old: ended without sending; ready: everything else."""
+    if status in SENT_STATES or applied:
+        return "sent"
+    return "old" if status in OLD_STATES else "ready"
+
+
+def was_sent(meta: dict, status: str = "") -> bool:
+    return (status or meta.get("status", "")) in SENT_STATES or bool(meta.get("applied"))
 
 
 def pdf_root(cfg) -> Path:
@@ -74,7 +83,7 @@ def plan_move(cfg, slug: str, meta: dict, status: str):
     src = _abs(cfg, cur)
     if not src.is_dir():
         return None
-    dest = pdf_root(cfg) / bucket(status) / slug
+    dest = pdf_root(cfg) / bucket(status, bool(meta.get("applied")) or status == "applied") / slug
     if src.resolve() == dest.resolve():
         return None
     if dest.exists():
@@ -231,7 +240,7 @@ def sources(cfg, slug: str, meta: dict, resume=None, cover=None) -> tuple:
 def build(cfg, slug: str, resume=None, cover=None, outdir=None, run=_run, tool=find_tool) -> int:
     meta = R.load(cfg, slug)
     status = meta.get("status", "")
-    if outdir is None and status in SENT_STATES:
+    if outdir is None and was_sent(meta, status):
         raise Refused(f"{slug} is {status}: {meta.get('pdf_dir') or 'its sent folder'} is the record of what "
                          "was sent and is not rebuilt (pass --outdir to build a copy elsewhere)")
     rp, cp = sources(cfg, slug, meta, resume, cover)
@@ -246,7 +255,7 @@ def build(cfg, slug: str, resume=None, cover=None, outdir=None, run=_run, tool=f
         move = plan_move(cfg, slug, meta, status)
         if move:
             do_move(cfg, meta, move)
-        out = _abs(cfg, meta["pdf_dir"]) if meta.get("pdf_dir") else pdf_root(cfg) / bucket(status) / slug
+        out = _abs(cfg, meta["pdf_dir"]) if meta.get("pdf_dir") else pdf_root(cfg) / bucket(status, was_sent(meta, status)) / slug
     out.mkdir(parents=True, exist_ok=True)
     findings = []
     for src in [rp] + ([cp] if cp else []):

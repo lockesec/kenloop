@@ -21,6 +21,8 @@ is rebuilt from the log.
   length) and/or `--gaps "KQL, macOS"`, sets the role passed and records why; a later score above the
   bar puts it back in play. `jobs upskill` adds "Why roles were dropped": each missing skill with the
   companies it cost, and experience length apart, since it is not a study gap.
+- A role applied to and later closed, passed or rejected keeps its PDFs in `sent/` (closing one as
+  `no_response` moved what the employer received into `old/`), and `jobs build` refuses to rewrite them.
 - **Three more spellings in the security pack** (now 202 terms, 59 aliases): "vulnerability mgmt",
   "nist cybersecurity framework" and "security event monitoring" read as the terms they spell, so a
   facts.md line written that way holds the term.

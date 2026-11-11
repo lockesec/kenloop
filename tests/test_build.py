@@ -300,3 +300,15 @@ def test_an_environment_name_is_never_read_as_the_last_words():
     doc = "\\begin{document}\n\\begin{zitemize}\n  \\item Mapped detections to MITRE ATT\\&CK\n\\end{zitemize}\n\\end{document}\n"
     assert B.final_tail(doc) == "to MITRE ATT&CK"
     assert B.clipped(doc, "• Mapped detections to MITRE ATT&CK\n") == []
+
+
+def test_a_role_applied_to_and_later_closed_keeps_its_pdfs_in_sent(cfg, home):
+    """Found in use (2026-11-11): closing an applied role as no_response moved what the employer
+    received out of sent/ into old/, and build would then have rewritten it."""
+    slug = role(cfg, home)
+    B.build(cfg, slug, run=Fake(), tool=tools)
+    J.status(cfg, slug, "applied", date="2026-09-24")
+    J.status(cfg, slug, "closed", reason="no_response")
+    assert meta(home, slug)["pdf_dir"] == f"pdf/sent/{slug}"
+    with pytest.raises(Refused, match="record of what was sent"):
+        B.build(cfg, slug, run=Fake(), tool=tools)
