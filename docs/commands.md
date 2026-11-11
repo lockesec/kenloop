@@ -579,7 +579,7 @@ which maps a term to a *related* one you hold (OpenAPI via REST) and still asks 
 to state the term itself. An alias whose term no loaded pack has is skipped with a
 warning; a word that is both a term and an alias reads as the term.
 
-The shipped `security` pack (202 terms, 56 aliases) names products and
+The shipped `security` pack (202 terms, 59 aliases) names products and
 certifications as postings do (Splunk, Microsoft Sentinel, CrowdStrike, KQL, Sigma
 rules, Security+, CySA+), beside functions and frameworks. Most words that are also
 ordinary English appear only in an unambiguous form (`elastic security`, `windows

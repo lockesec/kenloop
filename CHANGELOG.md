@@ -17,6 +17,9 @@ is rebuilt from the log.
 - **`jobs check` reads a sectioned LaTeX resume.** `\input{...}` and `\include{...}` files are inlined, so
   a resume that keeps its content in section files no longer reads as stating nothing, and editing a
   section makes the coverage report stale.
+- **Three more spellings in the security pack** (now 202 terms, 59 aliases): "vulnerability mgmt",
+  "nist cybersecurity framework" and "security event monitoring" read as the terms they spell, so a
+  facts.md line written that way holds the term.
 - CI lock: setuptools 84.2.1 (a Windows path escape was fixed in 84.1.0).
 
 ## 0.1.2 (2026-11-10)
