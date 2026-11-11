@@ -79,6 +79,21 @@ def _build(cfg, ns) -> int:
     return B.build(cfg, ns.slug, resume=ns.resume, cover=ns.cover, outdir=ns.outdir)
 
 
+def _prep(cfg, ns) -> int:
+    from . import apply as A
+    return A.prep(cfg, ns.slug, force=ns.force)
+
+
+def _research(cfg, ns) -> int:
+    from . import apply as A
+    return A.research(cfg, ns.slug, force=ns.force)
+
+
+def _email(cfg, ns) -> int:
+    from . import apply as A
+    return A.email(cfg, ns.slug, force=ns.force)
+
+
 def _status(cfg, ns) -> int:
     return J.status(cfg, ns.slug, ns.state, ns.date, ns.note, ns.stage, ns.reason, ns.probed)
 
@@ -134,6 +149,9 @@ HANDLERS = {
         "tailor": _tailor,
         "status": _status,
         "build": _build,
+        "prep": _prep,
+        "research": _research,
+        "email": _email,
         "rank": _rank,
         "board": _board,
         "show": _show,
@@ -191,6 +209,13 @@ def commands(groups) -> None:
     a.add_argument("--resume", help="the .tex to build (default: the role's `resume` field)")
     a.add_argument("--cover", help="the cover letter .tex (default: cover-letter-<x>.tex beside resume-<x>.tex)")
     a.add_argument("--outdir", help="build a copy here instead of the role's PDF folder (allowed for sent roles)")
+    for verb, what in (("research", "research.md: what the posting and your records say about the company, "
+                                    "with [FILL] sections for a read of its site and news"),
+                       ("prep", "prep.md: interview prep from the posting, facts.md, your story bank and research.md"),
+                       ("email", "email.md: a draft application email and short note, signed from [profile]")):
+        a = js.add_parser(verb, help=what)
+        a.add_argument("slug")
+        a.add_argument("--force", action="store_true", help="rewrite the file if it exists (you may have filled it in)")
     js.add_parser("rank", help="what to score, what to apply to, what is in flight")
     a = js.add_parser("board", help="every role in one table")
     a.add_argument("--status")

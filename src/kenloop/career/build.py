@@ -23,6 +23,7 @@ import unicodedata
 from pathlib import Path
 
 from ..core.errors import FINDINGS, NOT_EVALUABLE, OK, NotEvaluable, Refused, UsageError
+from . import ats
 from . import roles as R
 
 SENT_STATES = frozenset({"applied", "interviewing", "offer", "rejected"})
@@ -92,17 +93,9 @@ def do_move(cfg, meta: dict, move) -> str:
 
 # --- the checks (pure: text in, findings out) ---------------------------------
 
-def expand_inputs(tex: Path, depth: int = 0) -> str:
-    """The .tex source with every \\input{...} inlined (relative to the file's folder)."""
-    text = tex.read_text(encoding="utf-8")
-    if depth > 5:
-        return text
-
-    def sub(m: re.Match) -> str:
-        name = m.group(1)
-        f = tex.parent / (name if name.endswith(".tex") else name + ".tex")
-        return expand_inputs(f, depth + 1) if f.exists() else ""
-    return re.sub(r"\\input\{([^}]+)\}", sub, text)
+def expand_inputs(tex: Path) -> str:
+    """The .tex source with every \\input{...} inlined (the one implementation is ats.expand_tex)."""
+    return ats.expand_tex(tex)[0]
 
 
 def _plain_words(tex: str) -> list:

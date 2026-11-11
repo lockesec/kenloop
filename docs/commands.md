@@ -99,6 +99,7 @@ ken jobs check SLUG [--resume P]          coverage.json (P: current directory fi
                                          disguised skill (a posting only warns), 2 if it cannot judge
 ken jobs tailor SLUG                      review.md: what to state, what not to claim
 ken jobs status SLUG STATE [--stage S --reason R --probed a,b]   also files the role's PDF folder (below)
+ken jobs research | prep | email SLUG [--force]   research.md, prep.md, email.md in the role's folder (below)
 ken jobs build SLUG [--resume P --cover P --outdir D]   LaTeX to PDF, checked: 1 page, nothing clipped; exit 1 on findings
 ken jobs rank | board | show SLUG | reconcile
 ken jobs upskill                          upskill.json: weighted demand by bucket
@@ -370,6 +371,24 @@ is deterministic and holds:
   requirement lines no known skill was found in, to read yourself.
 
 It needs a fresh `jobs check` (NOT EVALUABLE otherwise, as `tailor`).
+
+### Research, interview prep and the email: `jobs research`, `jobs prep`, `jobs email`
+
+Each writes one Markdown file in the role's folder, put together like `jobs brief` from the posting,
+facts.md and a fresh `jobs check` (NOT EVALUABLE otherwise); what only you or a read of the company's
+site can supply is marked `[FILL]`. None rewrites a file that exists (exit 1) unless you pass `--force`.
+
+- `jobs research SLUG` -> `research.md`: the posting's fields, the company in its own words (its template
+  when there is one), your other roles at the company, the benefits it states, and your angle: each
+  responsibility that names a skill you hold. Then `[FILL]` sections for size, news, who interviews and tone.
+- `jobs prep SLUG` -> `prep.md`: what the job does; each required and preferred term with the facts.md
+  line to say, or NOT HELD (bridge, never claim); the experience asked; lines no known skill was found in;
+  the stories from your story bank that name the posting's terms, best first; and research.md, with the
+  sections still `[FILL]` named. When the posting's sections were not recognised, every term is listed
+  untyped rather than none. The story bank is `[profile] stories`: a Markdown file, one `### Title` per story.
+- `jobs email SLUG` -> `email.md`: a draft application email and a short note, signed from `[profile]`
+  `name` (NOT EVALUABLE without it), `email`, `phone` and `location`, with the built PDFs to attach and the
+  posting's asks you hold, each with its facts.md line. kenloop never sends anything.
 
 ### Building the PDFs: `jobs build`
 

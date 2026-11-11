@@ -523,6 +523,11 @@ def coverage_inputs(cfg, slug, resume_path) -> str:
         h.update(b"<pack missing>")
     if cfg.user_lexicon:
         paths.append(cfg.home / cfg.user_lexicon)
+    if H.Path(resume_path).suffix == ".tex":
+        try:
+            paths += ats.expand_tex(H.Path(resume_path))[1]       # editing a section makes the report stale
+        except (OSError, UnicodeDecodeError):
+            h.update(b"<inputs unreadable>")
     for p in paths:
         h.update(str(H.Path(p).resolve()).encode())
         try:
@@ -716,11 +721,9 @@ def _evidence(term: str, facts: str, lex) -> list:
     return out
 
 
-def brief(cfg, slug) -> int:
-    """A Markdown bundle for writing the tailored resume and cover letter: the posting typed,
-    what you hold (with the facts.md line that proves each), what not to claim, and the
-    company's own text. Needs a fresh `jobs check`."""
-    from . import orgs as O
+def role_view(cfg, slug) -> dict:
+    """What brief, prep, research and email read about one role: its record, a FRESH coverage report
+    (NOT EVALUABLE when absent or stale), the posting's terms, which are held, and the posting's parts."""
     meta = R.load(cfg, slug)
     cov = load_coverage(cfg, slug)
     if cov is None:
@@ -729,11 +732,21 @@ def brief(cfg, slug) -> int:
         raise NotEvaluable(f"{slug}: coverage is stale (the posting, resume, facts, config or a lexicon changed "
                            f"since it was computed): run `{H.PROG} jobs check {slug}` first")
     facts, lex = F.read(cfg), ats.load_lexicon(cfg)
-    where = cov.get("term_sections") or {}
     terms = list(cov["present"]) + [e["term"] for e in cov["equiv"]] + [m["term"] for m in cov["missing"]]
-    held = {t.lower() for t in terms if ats.claimable(t, facts, cfg, lex)}
-    parts = cov.get("parts") or {}
-    company, role = str(meta.get("company", "")).strip(), str(meta.get("role", "")).strip()
+    return {"meta": meta, "cov": cov, "facts": facts, "lex": lex, "where": cov.get("term_sections") or {},
+            "terms": terms, "held": {t.lower() for t in terms if ats.claimable(t, facts, cfg, lex)},
+            "parts": cov.get("parts") or {}, "company": str(meta.get("company", "")).strip(),
+            "role": str(meta.get("role", "")).strip()}
+
+
+def brief(cfg, slug) -> int:
+    """A Markdown bundle for writing the tailored resume and cover letter: the posting typed,
+    what you hold (with the facts.md line that proves each), what not to claim, and the
+    company's own text. Needs a fresh `jobs check`."""
+    from . import orgs as O
+    v = role_view(cfg, slug)
+    meta, cov, facts, lex, where, terms, held, parts, company, role = (
+        v["meta"], v["cov"], v["facts"], v["lex"], v["where"], v["terms"], v["held"], v["parts"], v["company"], v["role"])
     out = [f"# Brief: {company} — {role}", "",
            f"{H.NAME} wrote this from the posting, your facts.md and `jobs check` "
            f"(coverage {cov['covered']}/{cov['denom']}). It holds no model output.", "", BRIEF_RULES,

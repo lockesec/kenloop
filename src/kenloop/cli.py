@@ -30,6 +30,8 @@ CONFIG_TEMPLATE = "# " + H.NAME + """ settings. Every key is optional.
 [profile]
 # name = "Your Name"
 # resume = "resumes/resume.md"
+# email = ""; phone = ""; location = ""   # `jobs email` signs with these and name
+# stories = "stories.md"        # `jobs prep`: one `### Title` per story, matched to a posting's terms
 
 [build]                         # `jobs build`: LaTeX resumes to PDF (needs tectonic and poppler)
 # pdf_root = "pdf"              # sent/ ready/ old/<slug>, by whether the employer has the PDFs

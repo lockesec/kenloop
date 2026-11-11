@@ -375,6 +375,29 @@ _LATEX_BREAK = re.compile(
 _SPLIT_WORD = re.compile(r"[A-Za-z](?:\*{1,3}|_{2,3}|~~|`+|<[^>\n]{0,80}>|&#?\w{1,8};|\[)+[A-Za-z][^\s]{0,40}")
 
 
+def expand_tex(path: Path, depth: int = 0, seen=None) -> tuple:
+    """(LaTeX source with every \\input{...} and \\include{...} inlined, [the files inlined]). Names resolve
+    against the including file's folder, `.tex` optional; a missing one inlines nothing; 6 levels deep at most,
+    and a file never includes itself again."""
+    seen = set() if seen is None else seen
+    seen.add(path.resolve())
+    text = path.read_text(encoding="utf-8")
+    files: list = []
+    if depth > 5:
+        return text, files
+
+    def sub(m):
+        name = m.group(2).strip()
+        f = path.parent / (name if name.endswith(".tex") else name + ".tex")
+        if not f.is_file() or f.resolve() in seen:
+            return ""
+        inner, more = expand_tex(f, depth + 1, seen)
+        files.append(f)
+        files.extend(more)
+        return inner
+    return re.sub(r"(?<!\\)\\(input|include)\{([^}]+)\}", sub, text), files
+
+
 def resume_text(path: Path) -> str:
     """Markdown or plain text as is; LaTeX with comments and commands removed
     (``\\&`` survives as ``&``)."""
@@ -396,6 +419,10 @@ def resume_text(path: Path) -> str:
         raise NotEvaluable(f"resume {path} is not UTF-8 text ({cause}); a resume that cannot be read cannot be "
                            "checked, so save it as UTF-8 Markdown, text or LaTeX")
     if path.suffix == ".tex":
+        try:
+            raw = expand_tex(path)[0]                     # a sectioned resume keeps its content in \input files
+        except (OSError, UnicodeDecodeError) as e:
+            raise NotEvaluable(f"resume {path}: a file it \\inputs cannot be read as UTF-8 text ({e})") from e
         _warn("LaTeX is read heuristically (commands removed): a macro whose argument is a value, such as "
               "{\\color{blue}Docker}, can hide a term; to rely on check-claims, check a plain-text export "
               "(pandoc -t plain, detex)")

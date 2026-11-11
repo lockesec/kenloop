@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **`ken jobs research`, `jobs prep` and `jobs email`** write `research.md`, `prep.md` and `email.md` in a
+  role's folder from the posting, facts.md, a fresh `jobs check`, your story bank (`[profile] stories`,
+  matched to the posting's terms) and `[profile]` (name, email, phone, location). Each needs a fresh
+  check, marks what only you can supply `[FILL]`, and never rewrites a file without `--force`.
+- **`jobs check` reads a sectioned LaTeX resume.** `\input{...}` and `\include{...}` files are inlined, so
+  a resume that keeps its content in section files no longer reads as stating nothing, and editing a
+  section makes the coverage report stale.
+- CI lock: setuptools 84.2.1 (a Windows path escape was fixed in 84.1.0).
+
 ## 0.1.2 (2026-11-10)
 
 **Upgrade note:** `ken gap` has three new kinds (`unverified`, `misread`, `process`). A ken older than
