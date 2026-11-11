@@ -44,6 +44,7 @@ class CareerConfig(H.Config):
     bar: float = 4.0
     deadline_days: int = 3
     min_bucket_demand: float = 2.0
+    drop: bool = False
     targets: list = field(default_factory=list)
     profile: dict = field(default_factory=dict)
     wants: dict = field(default_factory=dict)
@@ -138,6 +139,10 @@ def load(home: Path, how: str = "") -> CareerConfig:
         cfg.bar = _num(nx["bar"], "next.bar")
     if "deadline_days" in nx:
         cfg.deadline_days = _int(nx["deadline_days"], "next.deadline_days")
+    if "drop" in nx:
+        if not isinstance(nx["drop"], bool):
+            raise NotEvaluable("config: `next.drop` must be true or false")
+        cfg.drop = nx["drop"]
     if "min_bucket_demand" in nx:
         cfg.min_bucket_demand = _num(nx["min_bucket_demand"], "next.min_bucket_demand")
     src = _table(raw, "sources")

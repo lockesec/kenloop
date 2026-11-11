@@ -431,7 +431,13 @@ def _fresh_coverage(cfg, slug, verb):
     return cov
 
 
-def score(cfg, slug, fit=None, note="") -> int:
+def split_gaps(text) -> list:
+    """"KQL, ZTNA (Zscaler, Cloudflare)" -> ["KQL", "ZTNA (Zscaler, Cloudflare)"]: commas inside
+    parentheses do not split."""
+    return [g.strip() for g in re.split(r",(?![^()]*\))", text or "") if g.strip()]
+
+
+def score(cfg, slug, fit=None, note="", years=False, gaps="") -> int:
     meta = R.load(cfg, slug)
     source = "you"
     if fit is None:
@@ -450,15 +456,49 @@ def score(cfg, slug, fit=None, note="") -> int:
             source = "suggested"
     if fit != fit or not 1.0 <= fit <= 5.0:
         raise UsageError(f"--fit {fit} is outside 1-5")
+    gl = split_gaps(gaps)
+    below = round(float(fit), 2) < cfg.bar
+    if cfg.drop and below and not (years or gl):
+        raise UsageError(f"{slug}: {fit} is under the bar {cfg.bar}, which drops the role ([next] drop); say why "
+                         "with --years (experience length) and/or --gaps \"KQL, macOS\"")
+    if (years or gl) and not below:
+        raise UsageError(f"{slug}: --years and --gaps record why a role is dropped; {fit} is not under the bar {cfg.bar}")
     meta["fit_score"] = round(float(fit), 2)
     meta["fit_source"] = source
-    if meta.get("status") in ("found", "", None):
-        meta["status"] = "scored"
-    R.history(meta, f"scored {meta['fit_score']}/5" + (f" — {note}" if note else ""))
+    if cfg.drop and below:
+        why = (["experience length"] if years else []) + gl
+        meta["drop"] = {"date": H.today().isoformat(), "years": bool(years), "gaps": gl}
+        meta["status"] = "passed"
+        R.history(meta, f"scored {meta['fit_score']}/5 — DROPPED (< {cfg.bar}): {', '.join(why)}"
+                  + (f" — {note}" if note else ""))
+    else:
+        dropped = meta.pop("drop", None)
+        if meta.get("status") in ("found", "", None) or (dropped and meta.get("status") == "passed"):
+            meta["status"] = "scored"                      # re-scored above the bar: back in play
+        R.history(meta, f"scored {meta['fit_score']}/5" + (f" — {note}" if note else ""))
     R.save(cfg, slug, meta)
     side = "at or above" if fit >= cfg.bar else "below"
-    print(f"{slug}: fit {meta['fit_score']} ({side} the bar {cfg.bar})")
+    print(f"{slug}: fit {meta['fit_score']} ({side} the bar {cfg.bar})"
+          + (f" — DROPPED: {', '.join(why)}" if cfg.drop and below else ""))
     return OK
+
+
+def drop_lines(cfg) -> list:
+    """Why roles were dropped: each missing skill with the companies it cost, then experience length."""
+    roles = [(s, m) for s, m in R.scan(cfg)[0] if isinstance(m.get("drop"), dict)]
+    if not roles:
+        return []
+    by: dict = {}
+    for _s, m in roles:
+        for g in m["drop"].get("gaps") or []:
+            by.setdefault(g, []).append(str(m.get("company", "")))
+    out = [f"## Why roles were dropped (scored under the bar) — {len(roles)} role(s)", ""]
+    out += [f"- {g}: {len(cs)} role(s) ({', '.join(sorted(set(cs)))})"
+            for g, cs in sorted(by.items(), key=lambda x: (-len(x[1]), x[0].lower()))]
+    yrs = sorted({str(m.get("company", "")) for _s, m in roles if m["drop"].get("years")})
+    if yrs:
+        out.append(f"- experience length: {len(yrs)} role(s) ({', '.join(yrs)}); not a study gap")
+    return out + [""]
 
 
 def user_path(cfg, arg):
@@ -1065,6 +1105,7 @@ def upskill(cfg) -> int:
             tag = " (ignored)" if it["noise"] else ""
             lines.append(f"- {it['term']}: demand {it['demand']}, {it['count']} role(s){tag}")
         lines.append("")
+    lines += drop_lines(cfg)
     _write_text(cfg.home / "upskill.md", "\n".join(lines))
     print(f"wrote {cfg.upskill.name}: {len(data['buckets'])} bucket(s), "
           f"{len(data['quick_wins'])} quick win(s), from {data['roles_analyzed']} role(s)")

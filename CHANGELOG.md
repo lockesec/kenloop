@@ -17,6 +17,10 @@ is rebuilt from the log.
 - **`jobs check` reads a sectioned LaTeX resume.** `\input{...}` and `\include{...}` files are inlined, so
   a resume that keeps its content in section files no longer reads as stating nothing, and editing a
   section makes the coverage report stale.
+- **A drop bar, opt-in** (`[next] drop = true`): `jobs score` under the bar needs `--years` (experience
+  length) and/or `--gaps "KQL, macOS"`, sets the role passed and records why; a later score above the
+  bar puts it back in play. `jobs upskill` adds "Why roles were dropped": each missing skill with the
+  companies it cost, and experience length apart, since it is not a study gap.
 - **Three more spellings in the security pack** (now 202 terms, 59 aliases): "vulnerability mgmt",
   "nist cybersecurity framework" and "security event monitoring" read as the terms they spell, so a
   facts.md line written that way holds the term.

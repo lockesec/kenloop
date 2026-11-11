@@ -63,7 +63,7 @@ def _reconcile(cfg, ns) -> int:
 
 
 def _score(cfg, ns) -> int:
-    return J.score(cfg, ns.slug, ns.fit, ns.note)
+    return J.score(cfg, ns.slug, ns.fit, ns.note, years=ns.years, gaps=ns.gaps)
 
 
 def _check(cfg, ns) -> int:
@@ -190,6 +190,8 @@ def commands(groups) -> None:
     a.add_argument("slug")
     a.add_argument("--fit", help="1-5, or `suggested` (see `jobs score SLUG` for the working)")
     a.add_argument("--note", default="")
+    a.add_argument("--years", action="store_true", help="under the bar for experience length (with [next] drop)")
+    a.add_argument("--gaps", default="", help="under the bar for these missing skills: \"KQL, macOS\" (with [next] drop)")
     a = js.add_parser("check", help="coverage of a posting by your resume and facts")
     a.add_argument("slug")
     a.add_argument("--resume")

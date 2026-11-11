@@ -55,6 +55,7 @@ half_life_days = 60
 probe_bonus = 2.0
 
 [next]
+# drop = false                 # true: a fit under the bar drops the role (status passed), and `jobs score` must say why
 bar = 4.0
 deadline_days = 3
 min_bucket_demand = 2.0

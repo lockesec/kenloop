@@ -94,7 +94,9 @@ ken branch [SLUG]                 the tool's offers from the record, and how wel
 # the job search (jobs)
 ken jobs discover --board B --company ORG | --all [--keyword K] [--intake] [--exclude-senior] [--reconcile]
 ken jobs intake --company C --role R [--jd FILE|-] [--force]
-ken jobs score SLUG [--fit 1-5 | --fit suggested]   no --fit: the suggested fit and its working
+ken jobs score SLUG [--fit 1-5 | --fit suggested] [--years] [--gaps "a, b"]   no --fit: the suggested fit and its working;
+                                         with [next] drop = true, a fit under the bar needs --years and/or --gaps, sets the
+                                         role passed and records why; `jobs upskill` lists the reasons
 ken jobs check SLUG [--resume P]          coverage.json (P: current directory first, then HOME); exit 1 if the resume has a
                                          disguised skill (a posting only warns), 2 if it cannot judge
 ken jobs tailor SLUG                      review.md: what to state, what not to claim
