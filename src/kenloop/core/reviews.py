@@ -82,6 +82,9 @@ def due(cfg, slug=None, limit=20, lane=None) -> int:
         for cid, c in shown:
             why = (f"  suspect: its piece {c['suspect'][0]} was answered wrong on {c['suspect'][1]}"
                    if c.get("suspect") else "")
+            if c.get("reteach"):
+                why += (f"  RE-TEACH FIRST: missed {c['reteach']}; teach it (`{H.PROG} taught {t} {cid}`), "
+                        "and its cold recall is due the day after")
             print(f"  {cid}  due {c.get('due') or 'unscheduled'}  [{L.badge(c)}]{why}")
         if len(rows) > len(shown):
             print(f"  … {len(rows) - len(shown)} more held back by --limit {limit}")

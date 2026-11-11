@@ -27,6 +27,10 @@ credit, and a dialogue never moves credit.
 - **Fold the rest into the lesson:** ask a due recall just before the part of the lesson that builds
   on it, as its on-ramp (embeddings before text analysis). It is still a cold recall: ask it before
   any teaching on it, and record it the same way.
+- **A miss is taught again before it is asked again.** `ken due` marks a concept a cold recall
+  missed as RE-TEACH FIRST: teach it (it does not count toward the 3-4), record `ken taught`, and its
+  next cold recall is due the day after the teaching. Never ask it cold again before that: a cold miss
+  followed by another cold miss measures the same gap twice. A partial is fixed on the spot instead.
 - **What is still due at the end waits** for the next session. A day late costs little; a long run
   of recalls before anything new drains the session the lesson needs.
 

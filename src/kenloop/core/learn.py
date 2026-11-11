@@ -91,7 +91,7 @@ EDGES = {"part-of": "part_of", "before": "before"}   # syllabus marker -> concep
 MASTERY_FIELDS = ("attempts", "correct", "streak", "partials", "guesses", "hints", "correct_days",
                   "errors", "resolved_idx", "by_type", "by_conf", "last_seen", "stability",
                   "difficulty", "interval", "due", "exam_clamp", "dialogues", "by_reasoning", "repeats",
-                  "taught", "last_taught", "predictions", "last_predicted")
+                  "taught", "last_taught", "predictions", "last_predicted", "reteach")
 RETENTION_DAYS = 2
 INTERFERENCE_OTHERS = 3
 BREADTH_TYPES, BREADTH_RATE = 2, 0.6
@@ -667,7 +667,12 @@ def apply_row(c: dict, row: dict, exam, repeat=False) -> None:
     if f["taught"]:
         c["taught"] = c.get("taught", 0) + 1
         c["last_taught"] = day
-        if not c.get("due"):
+        if c.get("reteach"):
+            # re-taught after a miss: the next cold recall is the day after THIS teaching, not the
+            # day after the miss (a cold miss followed by another cold miss measures one gap twice)
+            c.pop("reteach")
+            c["due"] = (_dt.date.fromisoformat(day) + _dt.timedelta(days=1)).isoformat()
+        elif not c.get("due"):
             # no credit, but the first cold recall is scheduled: tomorrow, with no interval (edge
             # #22). Unscheduled, a taught concept fell out of every list and was never recalled.
             c["due"] = (_dt.date.fromisoformat(day) + _dt.timedelta(days=1)).isoformat()
@@ -730,6 +735,9 @@ def apply_row(c: dict, row: dict, exam, repeat=False) -> None:
         bc["correct"] += f["ok"]
     if f["unaided_ok"]:
         _resolve_errors(c, qt)
+        c.pop("reteach", None)
+    elif result == "miss" and not f["massed"]:
+        c["reteach"] = day          # a miss is taught again before it is asked cold again
     if not f["ok"] or f["guess"] or f["assisted"] or f["massed"]:
         g = fsrs.AGAIN
     elif f["effortful"]:

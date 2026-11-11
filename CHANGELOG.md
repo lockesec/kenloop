@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**Upgrade note:** run `ken rebuild TOPIC` once for each topic. A missed answer now marks its concept
+"re-teach first" in the stored state, so state written by an older ken reads as drift (exit 3) until it
+is rebuilt from the log.
+
+- **A miss is taught again before it is asked again.** A cold miss marks the concept RE-TEACH FIRST in
+  `ken due`; `ken taught` clears the mark and sets the next cold recall for the day after the teaching
+  (it was the day after the miss, so a learner was asked cold twice with no teaching between). An unaided
+  right answer also clears it; a partial does not set it. `ken-tutor` teaches these outside the 3-4 warm-up.
 - **`ken jobs research`, `jobs prep` and `jobs email`** write `research.md`, `prep.md` and `email.md` in a
   role's folder from the posting, facts.md, a fresh `jobs check`, your story bank (`[profile] stories`,
   matched to the posting's terms) and `[profile]` (name, email, phone, location). Each needs a fresh
