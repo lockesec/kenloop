@@ -58,17 +58,21 @@ ken validate [SLUG]                       the syllabus, bank, links and log: exi
 # reasoning and questions
 ken close SLUG [--three T]... [--fuzzy F] [--perceived 1-5|WORDS] [--idea C]... [--minutes N --chunks N --acts N --why N --what N --woven N --digressions N]
                                   the one-minute close of a session (sessions.jsonl); `ken sessions [SLUG]` reads them back
-ken profile [--scaffold]           the curated learner profile (profile.md): who, goals, background by field, how to
-                                  teach you; `session` prints it, then only the learner notes written since its Updated day
+ken profile [--scaffold|--folded]  the curated learner profile (profile.md): who, goals, background by field, how to
+                                  teach you; `session` prints it, then only the learner notes written since. --folded
+                                  marks every note so far as taken in (Updated today, Folded: the count)
 ken print SLUG [--pdf] | --scaffold sheet|session
                                   the topic's reference sheet and session printouts (print/*.md, written by the
                                   tutor) rendered to self-contained .html, and .pdf with Chrome or Chromium on PATH
-ken gap SLUG CONCEPT TEXT [--kind step|notation|example|order|other]
-                                  a miss the teaching caused, counted against the tutor (tutor_gaps.jsonl);
+ken gap SLUG CONCEPT|- TEXT [--kind step|notation|example|order|unverified|misread|process|other] [--by tutor|learner]
+                                  a miss the teaching caused, counted against the tutor (tutor_gaps.jsonl); `-` when it
+                                  is about the session, --by learner when they noticed it (their words);
                                   `ken gaps [SLUG]` lists them by concept beside how many concepts were taught
-ken session SLUG                  start a study session: settings, scale, the ideas in play with their pyramid height
+ken gaps SLUG --review            the tutor's review at the close: what to re-read the session for, the gaps logged
+                                  today, and the question to ask the learner; `session` shows the last three
+ken session SLUG [--brief]        start a study session: settings, scale, the ideas in play with their pyramid height
                                   and the foundations under them, one mode line for the tutor, notes, open questions,
-                                  scouts, next here
+                                  scouts, next here; names rungs with no concepts; --brief leaves the profile text out
 ken taught SLUG CONCEPT [--note]  record that a concept was taught (teach mode): no credit; its first cold recall is due tomorrow
 ken note SLUG "..." | --learner "..."   a dated tutor note on how you learn (never evidence)
 ken talk SLUG [CONCEPT] [--protocol]   one concept: what is known, how your reasoning went; --protocol for a graded dialogue
@@ -94,7 +98,8 @@ ken jobs score SLUG [--fit 1-5 | --fit suggested]   no --fit: the suggested fit 
 ken jobs check SLUG [--resume P]          coverage.json (P: current directory first, then HOME); exit 1 if the resume has a
                                          disguised skill (a posting only warns), 2 if it cannot judge
 ken jobs tailor SLUG                      review.md: what to state, what not to claim
-ken jobs status SLUG STATE [--stage S --reason R --probed a,b]
+ken jobs status SLUG STATE [--stage S --reason R --probed a,b]   also files the role's PDF folder (below)
+ken jobs build SLUG [--resume P --cover P --outdir D]   LaTeX to PDF, checked: 1 page, nothing clipped; exit 1 on findings
 ken jobs rank | board | show SLUG | reconcile
 ken jobs upskill                          upskill.json: weighted demand by bucket
 ken jobs wants                            every role against [wants]: pass / fail / unknown per filter
@@ -366,6 +371,33 @@ is deterministic and holds:
 
 It needs a fresh `jobs check` (NOT EVALUABLE otherwise, as `tailor`).
 
+### Building the PDFs: `jobs build`
+
+`jobs build SLUG` compiles the role's LaTeX resume with tectonic, and its cover letter when one sits
+beside it (`cover-letter-<x>.tex` for `resume-<x>.tex`, or `--cover`). The resume is `--resume`, else
+the role's `resume` field, else the one its last `jobs check` measured. Each PDF is checked:
+
+- one page (pdfinfo);
+- the last three words of every `\item`, and of the document's last paragraph, are in the PDF text
+  (pdftotext); a line that ran off the page is missing, and the build names it;
+- no text within 0.25in of the bottom edge (`pdftotext -bbox`).
+
+Any failure exits 1 and names the file and the line. Missing tectonic, pdfinfo or pdftotext exits 2 and
+builds nothing; so does a PDF whose text positions cannot be read, since the margin was not checked.
+
+PDFs are filed by whether the employer has them, one folder per role under `[build] pdf_root`
+(default `pdf`, relative to the home):
+
+| Folder | Statuses | |
+|---|---|---|
+| `sent/<slug>` | applied, interviewing, offer, rejected | the record of what was submitted: `build` refuses to write here (exit 1); `--outdir` builds a copy elsewhere and leaves the record alone |
+| `ready/<slug>` | found, scored, tailoring, on-hold | |
+| `old/<slug>` | passed, closed | |
+
+`jobs status` moves the folder when a role crosses from one to another, and records it in
+`meta.json` (`pdf_dir`). A folder already at the destination is never overwritten: the status
+change stops (exit 2) before anything is written, and you move one aside by hand.
+
 ### What you want: `[wants]`
 
 Filters for what you want from a job, kept apart from `facts.md` (that is what you hold
@@ -457,6 +489,7 @@ near = ["austin", "texas"]   # a non-remote posting fits when its location holds
 exclude = ["product manager", "sales"]   # titles that are never this search
 search = ["security"]        # Workday is searched server side, once per word
 fresh_days = 14
+place_order = ["austin", "remote", "texas"]   # optional: which places you would rather; ranks the top picks
 ```
 
 | Bucket | When |
@@ -470,6 +503,27 @@ A place fits when the posting is remote and its location says US or nothing beyo
 or when it is not remote and its location holds a `near` word. A remote posting naming another
 country does not fit. A title matching no family, or holding an `exclude` word, is outside
 your search and only counted.
+
+The digest opens with **Start here**: the five best NEW apply-first postings, and a count of
+the rest. Without `place_order` they are newest first; with it, a posting in an earlier place
+comes first (`"remote"` stands for a remote posting, any other word is looked for in the
+location of one that is not remote).
+
+The digest reads the roles you track (`roles/<slug>/meta.json`). A posting is a tracked role
+when its URL is the role's `source_url`, or its id is the role's `job_id` at the same company
+(for Workday, the requisition number its `/job/...` path ends with also counts).
+
+| The role's status | In the digest |
+|---|---|
+| applied, interviewing, offer, rejected, passed, closed | leaves the tables; one line under **Already tracked** ("already applied 03-18") |
+| found, scored, tailoring, on-hold | stays in its table, marked "(tracked: scored)"; never a Start-here pick |
+
+**Follow-ups** lists every role in status `applied` by days since the applied date: from day 7,
+check the portal and that the posting is still up; from day 14, send a short note if you have a
+recruiter contact; from day 30, the command that closes it as `no_response`. These are
+suggestions; nothing is changed for you. "It was in today's listing" is said only when the
+posting was read today; a posting not seen is not called gone. A role record that cannot be
+read is counted at the top, since a posting may then be one you already track.
 
 It writes `digests/<date>.md` and `digests/seen.json` (the day each posting was first listed:
 what "new" means); `--dry-run` prints and writes nothing. A board that did not answer is named
@@ -530,6 +584,8 @@ common cases:
 | `jobs check`, `jobs check-claims` | `facts.md` missing, empty or without `## Held`; the resume missing, not UTF-8 text or not a regular file (`check-claims /etc`); a per-role or `[profile]` resume pointer to a file that is not there; no terms in the posting (`check`) or in the resume (both: `check` writes no `coverage.json` for a resume that states no lexicon term or acronym) |
 | `jobs tailor` | the role has no coverage report (without `coverage.json`), or the report is stale (the posting, resume, facts, config or a lexicon changed since): run `jobs check` first |
 | `jobs show`, `check`, `tailor`, `score`, `status`, `rank`, `upskill` | a damaged role `meta.json`: invalid JSON, JSON that is not an object (`null`, a list), a missing `company`, `role` or `status`, or a field of the wrong type or value (`fit_score` not a number, `status` not one of the statuses); the file and the field are named |
+| `jobs build` | tectonic, pdfinfo or pdftotext missing (the message says which and where to get it) |
+| `jobs status` | the role's PDF folder would move onto a folder that already exists |
 | `jobs upskill` | no role has a coverage report: it prints `0 bucket(s) from 0 role(s)` with the cause and writes no `upskill.json` |
 | `jobs gaps` | `upskill.json` absent (prints `0 role(s) analysed`), damaged or not schema-2, or it analysed 0 roles (with roles analysed it prints `N demand bucket(s) from M role(s)` and exits 0) |
 | `plan --from-gap` | no `upskill.json` yet |
@@ -581,6 +637,7 @@ config.toml      settings for the sidecars: keyword packs, equivalences, demand 
 facts.md         what you hold: only skills under `## Held` count. `init` writes the template once; no command after that modifies it.
 resumes/         resume.md (or .txt, .tex)
 roles/<slug>/    meta.json, jd.txt, scorecard.md, coverage.json, review.md
+pdf/             sent/ ready/ old/<slug>: built PDFs, by whether the employer has them (`[build] pdf_root`)
 topics/<slug>/   topic.json (title, goal, origin, outlets, deadline, complete, intent, depth, start; the old
                  names exam_date and passed are still read, and renamed only by `settings SLUG --migrate`), syllabus.md, questions.md,
                  log.jsonl (the record: every answer and dialogue; each row carries the question's depth and

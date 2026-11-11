@@ -17,6 +17,12 @@ manager", "sales"), is outside your search and is only counted. A board
 that did not answer, or answered with a partial listing, is named at the top: an unreachable
 board is never "no new jobs".
 
+The digest knows the roles you already track (HOME/roles/). A posting that is a tracked role
+shows that role's status: one you applied to, are interviewing for, passed on or closed leaves
+the tables for one line under "Already tracked"; one still in your work queue stays, marked
+"tracked". The top of the digest is the few best NEW postings to apply to first, and a
+follow-ups section lists the roles you applied to 7, 14 and 30 days ago.
+
 The digest is a file (HOME/digests/<date>.md); `digests/seen.json` records the day each
 posting was first listed, which is what "new" means.
 """
@@ -28,15 +34,18 @@ import re
 
 from ..core import home as H
 from ..core.errors import NOT_EVALUABLE, OK, NotEvaluable
+from . import roles as R
 from . import sources as S
 from . import wants as W
 
 BUCKETS = ("apply first", "stretch", "worth a look", "set aside")
+TOP_PICKS = 5                    # new apply-first rows shown at the top; the rest are counted
+FOLLOW_UP_DAYS = (7, 14, 30)     # portal check, short note, suggest closing as no_response
 
 
 def parse(table: dict, error) -> dict:
     """The [digest] table, checked."""
-    known = {"families", "near", "search", "exclude", "fresh_days"}
+    known = {"families", "near", "search", "exclude", "fresh_days", "place_order"}
     extra = set(table) - known
     if extra:
         raise error(f"config: unknown [digest] key(s) {', '.join(sorted(extra))} (known: {', '.join(sorted(known))})")
@@ -52,7 +61,7 @@ def parse(table: dict, error) -> dict:
         fams.append({"name": f["name"].strip(), "match": [m.strip().lower() for m in match],
                      "prefer": f.get("prefer", False)})
     out = {"families": fams}
-    for key in ("near", "search", "exclude"):
+    for key in ("near", "search", "exclude", "place_order"):
         v = table.get(key, [])
         if not isinstance(v, list) or not all(isinstance(x, str) and x.strip() for x in v):
             raise error(f"config: `digest.{key}` must be a list of words")
@@ -107,6 +116,90 @@ def place(p: dict, near: list) -> tuple:
     return False, loc, W._us_evidence(meta)
 
 
+def place_rank(where: str, location, order: list) -> int:
+    """Where the posting sits in your `place_order` (0 is best); len(order) when it names none.
+    The word "remote" stands for a remote posting; any other word is looked for in the location
+    of a posting that is not remote."""
+    remote = (where or "").startswith("remote")
+    low = (location or "").lower()
+    for i, w in enumerate(order):
+        if (w == "remote" and remote) or (w != "remote" and not remote and w in low):
+            return i
+    return len(order)
+
+
+def _norm_url(u) -> str:
+    """A posting URL reduced to what names the posting: no scheme, www, query, fragment,
+    Workday locale segment or trailing slash."""
+    u = re.sub(r"[?#].*$", "", (u or "").strip().lower())
+    u = re.sub(r"^https?://(?:www\.)?", "", u)
+    return re.sub(r"/[a-z]{2}-[a-z]{2}(?=/)", "", u).rstrip("/")
+
+
+def _squash(s) -> str:
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _same_org(meta: dict, row: dict) -> bool:
+    """A job id is only unique inside one company, so an id match also needs the company to agree."""
+    org = (row.get("org") or "").lower()
+    if meta.get("org"):
+        return meta["org"].lower() == org
+    a, b = _squash(org), _squash(meta.get("company"))
+    return bool(a) and ((bool(b) and (a in b or b in a)) or org in (meta.get("source_url") or "").lower())
+
+
+def _id_match(job_id: str, ext_id: str) -> bool:
+    """The record's job_id is the posting's id, or (Workday) the requisition its /job/ path ends with."""
+    return bool(job_id) and bool(ext_id) and (
+        job_id == ext_id or (ext_id.startswith("/job/") and ext_id.endswith("_" + job_id)))
+
+
+_STATUS_RANK = {s: i for i, s in enumerate(
+    ("offer", "interviewing", "applied", "rejected", "closed", "passed", "on-hold", "tailoring", "scored", "found"))}
+
+
+def tracked_role(row: dict, roles: list):
+    """(slug, meta) of the tracked role this posting is, or None. Matched on the normalised
+    posting URL, or on the job id inside the same company. When several records match (the
+    same posting tracked twice), the one furthest along wins."""
+    url = _norm_url(row.get("url"))
+    hits = [(slug, m) for slug, m in roles
+            if (url and _norm_url(m.get("source_url")) == url)
+            or (_id_match(m.get("job_id") or "", row.get("ext_id") or "") and _same_org(m, row))]
+    return min(hits, key=lambda sm: _STATUS_RANK.get(sm[1].get("status"), 99)) if hits else None
+
+
+def _tracked_label(t: dict) -> str:
+    day = f" {t['applied'][5:]}" if t.get("applied") else ""
+    if t["status"] == "applied":
+        return f"already applied{day}"
+    if t["status"] in ("interviewing", "offer"):
+        return f"{t['status']} (applied{day})" if day else t["status"]
+    if t["status"] == "closed" and t.get("reason"):
+        return f"closed ({t['reason']})"
+    return t["status"]
+
+
+def _left_tables(r: dict) -> bool:
+    """A posting you already acted on (in flight, or closed out) is not offered again."""
+    return bool(r.get("tracked")) and r["tracked"]["status"] in R.IN_FLIGHT | set(R.TERMINAL)
+
+
+def follow_ups(roles: list, today, listed: set) -> list:
+    """Every role with status applied: days since, and whether its posting was in today's listing
+    (True, or None when it was not seen: a board not read today cannot say the posting is gone)."""
+    out = []
+    for slug, m in roles:
+        if m.get("status") != "applied":
+            continue
+        when = m.get("applied") or ""
+        out.append({"slug": slug, "company": m.get("company") or "", "role": m.get("role") or "",
+                    "applied": when, "days": (today - _dt.date.fromisoformat(when)).days if when else None,
+                    "listed": True if slug in listed else None})
+    return sorted(out, key=lambda f: (f["days"] is None, -(f["days"] or 0), f["slug"]))
+
+
 def pay_label(cfg, p: dict) -> tuple:
     """(verdict from [wants] 'keep'|'flag'|'exclude', why, pay shown)."""
     meta = {"role": p.get("title"), "location": p.get("location"), "workplace": p.get("workplace"),
@@ -146,6 +239,7 @@ def bucket(cfg, p: dict, settings: dict) -> dict | None:
     else:
         b, reason = "set aside", "not a preferred family, and not in a place you said yes to"
     return {"bucket": b, "reason": reason, "family": fam["name"], "senior": senior, "where": where,
+            "place_rank": place_rank(where, p.get("location"), settings.get("place_order", [])),
             "pay": pay, "flag": why if verdict == "flag" else "", "title": p.get("title") or "",
             "org": p.get("org"), "board": p.get("board"), "ext_id": p.get("ext_id") or "",
             "url": p.get("url") or "", "posted": p.get("posted")}
@@ -170,8 +264,28 @@ def render(rows: list, report: dict, today, settings: dict) -> str:
     new = sum(1 for r in rows if r["new"])
     out += ["", f"{len(rows)} posting(s) in your families, {new} new since the last digest; "
                 f"{report['outside']} outside them (not listed).", ""]
+    if report.get("roles_damaged"):
+        out += [f"TRACKED ROLES NOT FULLY READ: {report['roles_damaged']} role record(s) are damaged, so a posting "
+                "below may be one you already track (`ken jobs list` names them).", ""]
+    moved = [r for r in rows if _left_tables(r) and r["bucket"] != "set aside"]
+    picks = [r for r in rows if r["bucket"] == "apply first" and r["new"] and not r.get("tracked")]
+    picks.sort(key=lambda r: (r.get("place_rank", 0), bool(r["flag"]), r["posted"] is None,
+                              -_dt.date.fromisoformat(r["posted"]).toordinal() if r["posted"] else 0,
+                              r["pay"] == "not stated", r["org"] or "", r["title"]))
+    out.append(f"## Start here ({len(picks)} new to apply to first)")
+    out.append("")
+    if not picks:
+        out += ["Nothing new to apply to first today.", ""]
+    else:
+        out.append("| Posted | Company | Role | Where | Pay |")
+        out.append("|---|---|---|---|---|")
+        for r in picks[:TOP_PICKS]:
+            out.append(_line(r, today, new_col=False))
+        if len(picks) > TOP_PICKS:
+            out += ["", f"{len(picks) - TOP_PICKS} more new under Apply first."]
+        out.append("")
     for b in BUCKETS[:-1]:
-        mine = [r for r in rows if r["bucket"] == b]
+        mine = [r for r in rows if r["bucket"] == b and not _left_tables(r)]
         listed = mine if b == "apply first" else [r for r in mine if r["new"] or _fresh(r, today, fresh)]
         listed.sort(key=lambda r: (not r["new"], r["posted"] is None,
                                    -_dt.date.fromisoformat(r["posted"]).toordinal() if r["posted"] else 0,
@@ -186,15 +300,18 @@ def render(rows: list, report: dict, today, settings: dict) -> str:
         out.append("| | Posted | Company | Role | Where | Pay |")
         out.append("|---|---|---|---|---|---|")
         for r in listed:
-            role = f"[{r['title']}]({r['url']})" if r["url"] else r["title"]
-            note = f" ({r['reason']})" if r["reason"] else ""
-            flag = f" FLAG: {r['flag']}" if r["flag"] else ""
-            out.append(f"| {'NEW' if r['new'] else ''} | {_age(r['posted'], today)} | {r['org']} | {role} | "
-                       f"{r['where']}{note} | {r['pay']}{flag} |".replace("\n", " "))
+            out.append(_line(r, today))
         if hidden:
             out.append("")
             out.append(f"{hidden} more, older than {fresh} days and not new.")
         out.append("")
+    if moved:
+        out.append(f"## Already tracked ({len(moved)})")
+        out.append("")
+        for r in sorted(moved, key=lambda r: (_STATUS_RANK.get(r["tracked"]["status"], 99), r["org"] or "", r["title"])):
+            out.append(f"- {r['org']}: {r['title']}: {_tracked_label(r['tracked'])} (`{r['tracked']['slug']}`)")
+        out.append("")
+    out += _follow_up_lines(report.get("followups") or [])
     aside = [r for r in rows if r["bucket"] == "set aside"]
     out.append(f"## Set aside ({len(aside)})")
     out.append("")
@@ -207,6 +324,44 @@ def render(rows: list, report: dict, today, settings: dict) -> str:
     if not aside:
         out.append("None.")
     return "\n".join(out) + "\n"
+
+
+def _line(r: dict, today, new_col: bool = True) -> str:
+    role = f"[{r['title']}]({r['url']})" if r["url"] else r["title"]
+    if r.get("tracked"):
+        role += f" (tracked: {r['tracked']['status']})"
+    note = f" ({r['reason']})" if r["reason"] else ""
+    flag = f" FLAG: {r['flag']}" if r["flag"] else ""
+    first = f"| {'NEW' if r['new'] else ''} " if new_col else ""
+    return (f"{first}| {_age(r['posted'], today)} | {r['org']} | {role} | "
+            f"{r['where']}{note} | {r['pay']}{flag} |").replace("\n", " ")
+
+
+def _follow_up_lines(ups: list) -> list:
+    """The follow-ups section: nothing when no role is in status applied."""
+    if not ups:
+        return []
+    week, note, close = FOLLOW_UP_DAYS
+    out = [f"## Follow-ups ({len(ups)} applied)", ""]
+    quiet = 0
+    for f in ups:
+        name = f"{f['company']}: {f['role']} (`{f['slug']}`)"
+        up = " It was in today's listing." if f["listed"] else ""
+        if f["days"] is None:
+            out.append(f"- {name}: the applied date is not recorded, so there is no day count.")
+        elif f["days"] >= close:
+            out.append(f"- {name}: day {f['days']}. If no reply has come: "
+                       f"`ken jobs status {f['slug']} closed --reason no_response`.{up}")
+        elif f["days"] >= note:
+            out.append(f"- {name}: day {f['days']}. Send a short note if you have a recruiter contact.{up}")
+        elif f["days"] >= week:
+            out.append(f"- {name}: day {f['days']}. Check the portal, and that the posting is still up.{up}")
+        else:
+            quiet += 1
+    if quiet:
+        out.append(f"- {quiet} applied in the last {week} days: nothing due yet.")
+    out.append("")
+    return out
 
 
 def _fresh(r, today, fresh_days) -> bool:
@@ -226,6 +381,9 @@ def run(cfg, settings: dict, today=None, write: bool = True, progress: bool = Fa
     except (OSError, ValueError) as e:
         raise NotEvaluable(f"{seen_path} could not be read ({e}): 'new' cannot be told from 'seen'") from e
     report = {"boards": len(cfg.targets), "reached": 0, "errors": [], "partial": [], "outside": 0}
+    roles, damaged = R.scan(cfg)
+    report["roles_damaged"] = len(damaged)
+    listed: set = set()
     rows, keys = [], set()
     for t in cfg.targets:
         # Workday is searched server side, once per search word; the others list everything
@@ -255,8 +413,15 @@ def run(cfg, settings: dict, today=None, write: bool = True, progress: bool = Fa
                     continue
                 row["key"] = key
                 row["new"] = key not in seen
+                hit = tracked_role(row, roles)
+                if hit:
+                    listed.add(hit[0])
+                    row["tracked"] = {"slug": hit[0], "status": hit[1].get("status"),
+                                      "applied": hit[1].get("applied") or "",
+                                      "reason": (hit[1].get("outcome") or {}).get("closed_reason") or ""}
                 rows.append(row)
         report["reached"] += reached
+    report["followups"] = follow_ups(roles, today, listed)
     if write:
         for r in rows:
             seen.setdefault(r["key"], today.isoformat())

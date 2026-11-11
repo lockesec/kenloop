@@ -214,3 +214,128 @@ def test_workday_reads_detail_only_for_titles_the_caller_wants(home, monkeypatch
     monkeypatch.setattr(S, "_get_json", lambda url: got.append(url) or {"jobPostingInfo": {"jobDescription": "x"}})
     res = S.fetch("workday", "acme", cfg, keyword="security", target=target, detail_for=lambda t: "SOC" in t)
     assert res.complete and len(res.postings) == 2 and got == ["https://acme.wd1.myworkdayjobs.com/wday/cxs/acme/External/job/a"]
+
+
+# ---- tracked roles, follow-ups, the top picks ----
+
+def _role(home, slug, **meta):
+    d = home / "roles" / slug
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "meta.json").write_text(json.dumps({"company": "Acme", "role": slug, "status": "found", **meta}))
+
+
+def _digest(dcfg):
+    rows, report, _ = D.run(dcfg, dcfg.digest, today=TODAY, write=False)
+    return {r["title"]: r for r in rows}, D.render(rows, report, TODAY, dcfg.digest)
+
+
+def test_an_applied_role_leaves_the_tables_for_one_line(dcfg, home):
+    _board(home, [{"ext_id": "77", "title": "SOC Analyst", "location": "Remote - US"},
+                  {"ext_id": "78", "title": "Security Analyst", "location": "Remote - US"}])
+    _role(home, "acme-soc", status="applied", job_id="77", applied="2030-03-18")
+    rows, text = _digest(dcfg)
+    assert rows["SOC Analyst"]["tracked"]["status"] == "applied"
+    assert "tracked" not in rows["Security Analyst"]
+    assert "## Apply first (1, 1 new)" in text                       # the applied one is not counted there
+    assert "- acme: SOC Analyst: already applied 03-18 (`acme-soc`)" in text
+    start = text.split("## Start here")[1].split("## Apply first")[0]
+    assert "Security Analyst" in start and "SOC Analyst" not in start
+
+
+@pytest.mark.parametrize("status,label", [("passed", "passed"), ("rejected", "rejected"),
+                                          ("interviewing", "interviewing")])
+def test_closed_and_in_flight_roles_are_not_offered_again(dcfg, home, status, label):
+    _board(home, [{"ext_id": "77", "title": "SOC Analyst", "location": "Remote - US"}])
+    _role(home, "acme-soc", status=status, job_id="77")
+    _, text = _digest(dcfg)
+    assert "## Apply first (0, 0 new)" in text and f"SOC Analyst: {label} (`acme-soc`)" in text
+
+
+def test_a_work_queue_role_stays_marked_tracked(dcfg, home):
+    _board(home, [{"ext_id": "77", "title": "SOC Analyst", "location": "Remote - US", "url": "https://x.test/j/77"}])
+    _role(home, "acme-soc", status="scored", job_id="77")
+    _, text = _digest(dcfg)
+    assert "[SOC Analyst](https://x.test/j/77) (tracked: scored)" in text
+    assert "Already tracked" not in text
+    assert "## Start here (0 new to apply to first)" in text         # tracked is not a new pick
+
+
+def test_match_by_url_and_by_workday_requisition(dcfg, home):
+    roles = [("by-url", {"company": "Other Name", "role": "r", "status": "applied",
+                         "source_url": "https://acme.wd5.myworkdayjobs.com/en-US/Careers/job/Remote/SOC_R1/?src=x"}),
+             ("by-req", {"company": "Acme Corp", "role": "r", "status": "applied", "job_id": "R30634"}),
+             ("by-path", {"company": "Acme", "role": "r", "status": "found", "job_id": "/job/Remote/IR_R9"})]
+    row = {"org": "acme", "ext_id": "/job/Remote/SOC_R1",
+           "url": "https://acme.wd5.myworkdayjobs.com/Careers/job/Remote/SOC_R1"}
+    assert D.tracked_role(row, roles)[0] == "by-url"
+    assert D.tracked_role({"org": "acme", "ext_id": "/job/USA/Detection-Engineer_R30634", "url": ""}, roles)[0] == "by-req"
+    assert D.tracked_role({"org": "acme", "ext_id": "/job/Remote/IR_R9", "url": ""}, roles)[0] == "by-path"
+    assert D.tracked_role({"org": "acme", "ext_id": "/job/Remote/Other_R30635", "url": ""}, roles) is None
+
+
+def test_the_same_job_id_at_another_company_is_not_a_match(dcfg, home):
+    roles = [("globex-soc", {"company": "Globex", "role": "r", "status": "applied", "job_id": "77",
+                             "source_url": "https://boards.test/globex/jobs/77"})]
+    assert D.tracked_role({"org": "acme", "ext_id": "77", "url": "https://boards.test/acme/jobs/77"}, roles) is None
+    assert D.tracked_role({"org": "globex", "ext_id": "77", "url": ""}, roles)[0] == "globex-soc"
+
+
+def test_the_role_furthest_along_wins_when_a_posting_is_tracked_twice(dcfg, home):
+    roles = [("a", {"company": "Acme", "role": "r", "status": "found", "job_id": "77"}),
+             ("b", {"company": "Acme", "role": "r", "status": "applied", "job_id": "77"})]
+    assert D.tracked_role({"org": "acme", "ext_id": "77", "url": ""}, roles)[0] == "b"
+
+
+def test_follow_ups_at_7_14_and_30_days(dcfg, home):
+    _board(home, [{"ext_id": "9", "title": "SOC Analyst", "location": "Remote - US"}])
+    _role(home, "d3", status="applied", applied="2030-03-17")
+    _role(home, "d9", status="applied", applied="2030-03-11", job_id="9")
+    _role(home, "d15", status="applied", applied="2030-03-05")
+    _role(home, "d31", status="applied", applied="2030-02-17")
+    _role(home, "undated", status="applied")
+    _role(home, "not-applied", status="scored")
+    _, text = _digest(dcfg)
+    ups = text.split("## Follow-ups (5 applied)")[1].split("## Set aside")[0]
+    assert "(`d9`): day 9. Check the portal, and that the posting is still up. It was in today's listing." in ups
+    assert "(`d15`): day 15. Send a short note if you have a recruiter contact." in ups
+    assert "(`d31`): day 31. If no reply has come: `ken jobs status d31 closed --reason no_response`." in ups
+    assert "(`undated`): the applied date is not recorded" in ups
+    assert "- 1 applied in the last 7 days: nothing due yet." in ups
+    assert "not-applied" not in ups
+    d15 = next(ln for ln in ups.splitlines() if "`d15`" in ln)
+    assert "today's listing" not in d15          # not seen today is not claimed either way
+
+
+def test_no_follow_up_section_without_an_applied_role(dcfg, home):
+    _board(home, [{"ext_id": "1", "title": "SOC Analyst", "location": "Remote - US"}])
+    assert "Follow-ups" not in _digest(dcfg)[1]
+
+
+def test_start_here_shows_five_and_counts_the_rest(dcfg, home):
+    _board(home, [{"ext_id": str(i), "title": f"SOC Analyst {i}", "location": "Remote - US",
+                   "posted": f"2030-03-{10 + i:02d}"} for i in range(1, 8)])
+    _, text = _digest(dcfg)
+    start = text.split("## Start here (7 new to apply to first)")[1].split("## Apply first")[0]
+    assert start.count("| SOC Analyst") == 5 and "2 more new under Apply first." in start
+    assert "SOC Analyst 7 " in start and "SOC Analyst 2 " not in start          # newest first
+
+
+def test_place_order_ranks_the_top_picks(home):
+    (home / "config.toml").write_text(CONFIG.replace(
+        'near = ["lafayette", "louisiana"]',
+        'near = ["lafayette", "houston"]\nplace_order = ["lafayette", "remote", "houston"]'))
+    cfg = CC.load(home)
+    _board(home, [{"ext_id": "1", "title": "SOC Analyst H", "location": "Houston, TX", "posted": "2030-03-19"},
+                  {"ext_id": "2", "title": "SOC Analyst R", "location": "Remote - US", "posted": "2030-03-18"},
+                  {"ext_id": "3", "title": "SOC Analyst L", "location": "Lafayette, LA", "posted": "2030-03-01"}])
+    _, text = _digest(cfg)
+    start = text.split("## Start here")[1].split("## Apply first")[0]
+    assert start.index("Analyst L") < start.index("Analyst R") < start.index("Analyst H")
+
+
+def test_a_damaged_role_record_is_named_not_ignored(dcfg, home):
+    _board(home, [{"ext_id": "1", "title": "SOC Analyst", "location": "Remote - US"}])
+    (home / "roles" / "broken").mkdir(parents=True)
+    (home / "roles" / "broken" / "meta.json").write_text("{not json")
+    _, text = _digest(dcfg)
+    assert "TRACKED ROLES NOT FULLY READ: 1 role record(s) are damaged" in text

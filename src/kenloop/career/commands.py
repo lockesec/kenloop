@@ -74,6 +74,11 @@ def _tailor(cfg, ns) -> int:
     return J.tailor(cfg, ns.slug)
 
 
+def _build(cfg, ns) -> int:
+    from . import build as B
+    return B.build(cfg, ns.slug, resume=ns.resume, cover=ns.cover, outdir=ns.outdir)
+
+
 def _status(cfg, ns) -> int:
     return J.status(cfg, ns.slug, ns.state, ns.date, ns.note, ns.stage, ns.reason, ns.probed)
 
@@ -128,6 +133,7 @@ HANDLERS = {
         "check": _check,
         "tailor": _tailor,
         "status": _status,
+        "build": _build,
         "rank": _rank,
         "board": _board,
         "show": _show,
@@ -179,6 +185,12 @@ def commands(groups) -> None:
     a.add_argument("--stage", help="how far you got: none, screen, interview, final, offer")
     a.add_argument("--reason", help="why it closed: rejected, withdrew, filled, posting_gone, no_response, other")
     a.add_argument("--probed", help="comma-separated skills an interviewer asked about")
+    a = js.add_parser("build", help="compile the role's LaTeX resume and cover letter to PDF and check each is "
+                                    "one page with nothing clipped (needs tectonic and poppler)")
+    a.add_argument("slug")
+    a.add_argument("--resume", help="the .tex to build (default: the role's `resume` field)")
+    a.add_argument("--cover", help="the cover letter .tex (default: cover-letter-<x>.tex beside resume-<x>.tex)")
+    a.add_argument("--outdir", help="build a copy here instead of the role's PDF folder (allowed for sent roles)")
     js.add_parser("rank", help="what to score, what to apply to, what is in flight")
     a = js.add_parser("board", help="every role in one table")
     a.add_argument("--status")

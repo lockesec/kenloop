@@ -127,6 +127,18 @@ def climbing(cons: dict, path: list, start) -> int | None:
     return None
 
 
+def empty_rungs(cons: dict, path: list) -> list:
+    """Rungs no concept sits on. Nothing can be taught or asked there until a syllabus line exists."""
+    return [i for i in range(len(path)) if not any(rung_of(c, path) == i for c in cons.values())]
+
+
+def empty_line(bare: list, path: list, slug: str) -> str:
+    return (f"{len(bare)} of {len(path)} rung(s) have no concepts yet ("
+            + ", ".join(f"{i} {path[i]}" for i in bare)
+            + f"): add a line under ## Concepts in syllabus.md, then `{H.PROG} sync {slug}`, "
+              "before placing or teaching there")
+
+
 def _depth(cons: dict, cid: str) -> int:
     seen, d = set(), 0
     while cons.get(cid, {}).get("part_of") and cid not in seen:
@@ -145,6 +157,7 @@ def _verdict(problems) -> int:
 
 
 PROTOCOL = """\
+  Or choose: `{prog} place {slug} --start 0` starts from the ground up, with no questions.
   How to place (your assistant asks; you answer in your own words, no looking things up):
   1. Say which rung you think you stand on. That is where the first question goes, not the answer.
   2. One open question per rung, a why or a what-if, never multiple choice. "I don't know" is an answer.
@@ -198,6 +211,9 @@ def place(cfg, slug, rung=None, result=None, probe=None, answer=None, start=None
                 "one more" if i in st["undecided"] else "")
         here = "  <- climbing" if i == on else ""
         print(f"  {i}  {d:<14} {n:>2} concept(s)  {mark}{here}")
+    bare = empty_rungs(cons, path)
+    if bare:
+        print(f"  {empty_line(bare, path, slug)}")
     loose = [cid for cid, c in cons.items() if rung_of(c, path) is None]
     if loose:
         print(f"  {len(loose)} concept(s) on no rung (their domain is not in ## Path): {', '.join(loose[:4])}")

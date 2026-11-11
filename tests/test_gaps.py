@@ -70,3 +70,77 @@ def test_a_damaged_line_is_named_when_reading_gaps(t, home, capsys):
     capsys.readouterr()
     code = run(home, "gaps", "t")[0]
     assert code == 2 and "1 damaged line(s) not read" in capsys.readouterr().out
+
+
+# --- the tutor's review at the close: misses seen afterwards, and what the learner noticed
+
+def test_the_review_prints_the_questions_todays_gaps_and_what_to_ask(t, home, capsys):
+    code, out = run(home, "gaps", "t", "--review", capsys=capsys)
+    assert code == 0 and "logged today: 0 (none is a finding only after step 1)" in out.out
+    assert "I found nothing in my own teaching today. Did you notice any sharp edges" in out.out
+    for kind in ("unverified", "misread", "step", "process"):
+        assert f"       {kind}" in out.out
+    run(home, "gap", "t", "d:softmax", "taught the budget rule from memory", "--kind", "unverified")
+    run(home, "gap", "t", "-", "asked a placement question before they chose", "--kind", "process")
+    run(home, "gap", "t", "-", "the tables were too wide on my phone", "--kind", "process", "--by", "learner")
+    code, out = run(home, "gaps", "t", "--review", capsys=capsys)
+    assert "logged today: 3" in out.out
+    assert "d:softmax  unverified: taught the budget rule from memory" in out.out
+    assert "the session  process: the tables were too wide on my phone (the learner's words)" in out.out
+    assert "I found 2 thing(s) in my own teaching today" in out.out        # the learner's own is not the tutor's
+    assert "--by learner" in out.out and '"No" is not recorded' in out.out
+
+
+def test_the_review_counts_only_today_and_this_topic(t, home, capsys):
+    L.plan(t, "u")
+    (home / "tutor_gaps.jsonl").write_text(json.dumps({"date": "2001-01-01", "topic": "t", "concept": "d:tokens",
+                                                       "kind": "step", "gap": "an old one"}) + "\n")
+    G.gap(t, "u", "-", "another topic's", kind="process")
+    code, out = run(home, "gaps", "t", "--review", capsys=capsys)
+    assert "logged today: 0" in out.out and "an old one" not in out.out and "another topic" not in out.out
+
+
+def test_the_review_needs_a_topic_and_names_damage(t, home, capsys):
+    code, out = run(home, "gaps", "--review", capsys=capsys)
+    assert code != 0 and "give its topic" in out.err
+    (home / "tutor_gaps.jsonl").write_text("{not json\n")
+    code, out = run(home, "gaps", "t", "--review", capsys=capsys)
+    assert code == 2 and "logged today: NOT EVALUABLE, 1 damaged line(s)" in out.out and "logged today: 0" not in out.out
+
+
+def test_a_session_gap_and_a_learner_gap_are_read_back_apart(t, home, capsys):
+    L.taught(t, "t", "d:softmax", "shares")
+    G.gap(t, "t", "d:softmax", "skipped a step")
+    G.gap(t, "t", "-", "too many questions at once", kind="process", by="learner")
+    r = json.loads((home / "tutor_gaps.jsonl").read_text().splitlines()[-1])
+    assert (r["concept"], r["by"]) == ("-", "learner")
+    assert "by" not in json.loads((home / "tutor_gaps.jsonl").read_text().splitlines()[0])
+    capsys.readouterr()
+    run(home, "gaps", "t")
+    out = capsys.readouterr().out
+    assert "t (the session): 1 gap(s)" in out and "process: too many questions at once (the learner's words)" in out
+    assert "tutor gaps: 2 on 1 concept(s), 1 concept(s) taught; 1 about a session; " \
+           "1 raised by the learner, 1 found by the tutor" in out
+    with pytest.raises(UsageError):
+        G.gap(t, "t", "-", "x", by="someone")
+
+
+def test_session_opens_with_the_last_gaps_and_close_points_at_the_review(t, home, capsys):
+    capsys.readouterr()
+    run(home, "session", "t")
+    assert "tutor gaps" not in capsys.readouterr().out                 # none: nothing is said
+    for i in range(4):
+        G.gap(t, "t", "-", f"miss {i}", kind="process")
+    capsys.readouterr()
+    run(home, "session", "t")
+    out = capsys.readouterr().out
+    assert "tutor gaps here: 4; the last 3 (do not repeat them):" in out
+    assert "miss 0" not in out and "process: miss 3" in out
+    code, out = run(home, "close", "t", "--three", "one thing", capsys=capsys)
+    assert "then the tutor's review: `ken gaps t --review`" in out.out
+    with (home / "tutor_gaps.jsonl").open("a") as fh:
+        fh.write("{not json\n")
+    capsys.readouterr()
+    run(home, "session", "t")
+    out = capsys.readouterr().out
+    assert "tutor gaps: NOT EVALUABLE, 1 damaged line(s)" in out and "do not repeat them" not in out

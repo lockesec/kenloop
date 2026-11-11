@@ -804,7 +804,10 @@ def status(cfg, slug, state, date=None, note="", stage=None, reason=None, probed
     back = R.is_backward(old, state)
     if back:
         H.warn(f"{slug}: backward move {old} → {state} (recorded)")
+    from . import build as B
+    move = B.plan_move(cfg, slug, meta, state)            # checked before anything changes: never overwrites
     meta["status"] = state
+    moved = B.do_move(cfg, meta, move) if move else ""
     if state == "applied" and not meta.get("applied"):
         meta["applied"] = when
     out = dict(meta.get("outcome") or {})
@@ -826,7 +829,7 @@ def status(cfg, slug, state, date=None, note="", stage=None, reason=None, probed
     meta.setdefault("history", []).append(
         f"{when} → {state}" + (" (backward)" if back else "") + (" — " + "; ".join(extra) if extra else ""))
     R.save(cfg, slug, meta)
-    print(f"{slug}: {old or '-'} → {state}")
+    print(f"{slug}: {old or '-'} → {state}" + (f" (PDFs now in {moved})" if moved else ""))
     return OK
 
 

@@ -16,10 +16,16 @@ syllabus line. Then ask how they want to study it and set it:
 `ken settings <topic> --intent understand|pass --depth exam|mechanism|first-principles`
 (one line may differ: `:: intent:pass` / `:: depth:exam`).
 
+A rung with no concept on it cannot be asked about or taught: `ken place` and `ken session` name
+the empty rungs. A new topic needs a first concept line on each rung the learner may be placed on;
+the rest of the map still grows from use (`ken-branch`).
+
 ## Then where they start
 
 Before asking, propose: say where you would start and the evidence for it, and let them agree or
-correct you. Keep the verdict with `ken note --learner "..."`; it tells later sessions how well the
+correct you. In the same message, offer the other way in plain words: "or start at the bottom, with
+no questions". Ask no placement question until they have picked; one asked early is wasted when
+they choose the bottom. Keep the verdict with `ken note --learner "..."`; it tells later sessions how well the
 tutor reads this learner.
 
 - **They choose** ("start at the bottom", "from the ground up"): record it and stop placing.

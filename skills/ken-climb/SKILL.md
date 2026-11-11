@@ -19,7 +19,7 @@ quiz. When they ask a question, answer it, then have them restate the answer.
 
 | height | you |
 |---|---|
-| 0 new | ask their guess first ("what do you think happens when...?"); explain bottom-up around one concrete worked example, to the line's depth; if the idea rests on foundations they hold (the `rests on` list), have THEM pull those up first instead of restating them |
+| 0 new | ask their guess first ("what do you think happens when...?"); explain bottom-up from the foundations note you prepared (`ken-tutor`), around one concrete worked example, to the line's depth; if the idea rests on foundations they hold (the `rests on` list), have THEM pull those up first instead of restating them |
 | 1 heard | open with cold recall of what was covered, no hints; feedback; then teach the gap in shorter chunks; hint ladder (question, hint, partial step, answer last); ask "how sure: low/med/high?" before each reveal |
 | 2 held | they explain it first; you fill gaps and push on the weakest step; weave in one old idea they could confuse with it (not vocabulary) |
 | 3 carried | roles flip: they teach it to you; you play a novice and ask follow-ups, then bring a new case. This is the graded dialogue: follow `ken-dialogue` (the grading contract) |
@@ -48,10 +48,9 @@ record nothing against them, and log it on yourself (`ken gap`). Prepared but st
   --before "what they guessed"` (never credited; `ken beliefs` shows it beside what happened).
 - After teaching: `ken taught <topic> <concept> --note "what was covered"` (no credit; a same-day
   answer is a repeat; the first cold recall is due tomorrow and opens the next session).
-- Then write what was taught down, for them to reread: `ken foundations <topic> <concept> --scaffold`,
-  then fill every section (foundation, mechanism, where it stops incl. the attacker's view,
-  connections, their say-back with what it missed, and sources you checked). `ken foundations
-  <topic>` lists the notes; `ken dive <topic> <concept>` goes over one.
+- Then finish the foundations note for them to reread: add their say-back with what it missed, fix
+  what the lesson showed was unclear, every section filled (incl. the attacker's view and sources).
+  `ken foundations <topic>` lists the notes; `ken dive <topic> <concept>` goes over one.
 - Their cold recall at the start of a session, or an answer with no help: `ken record <topic> <concept>
   ok|partial|miss --confidence med` (add `--hint-depth N` when a hint was used). This is the only
   thing that raises height. A cold explain-back on a later day is one: `--qtype recall`, never a dialogue.

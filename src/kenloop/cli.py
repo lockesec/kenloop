@@ -31,6 +31,9 @@ CONFIG_TEMPLATE = "# " + H.NAME + """ settings. Every key is optional.
 # name = "Your Name"
 # resume = "resumes/resume.md"
 
+[build]                         # `jobs build`: LaTeX resumes to PDF (needs tectonic and poppler)
+# pdf_root = "pdf"              # sent/ ready/ old/<slug>, by whether the employer has the PDFs
+
 [ats]
 packs = ["web"]                 # keyword packs, in order (shipped: see the package's lexicons/)
 # user_lexicon = "lexicons/mine.toml"
@@ -68,6 +71,7 @@ targets = []                    # e.g. {board = "greenhouse", org = "examplecorp
 # near = ["austin", "texas"]    # a non-remote posting fits when its location holds one of these
 # search = ["security"]         # Workday is searched server side, once per word
 # fresh_days = 14               # older postings outside "apply first" are counted, not listed
+# place_order = ["austin", "remote", "texas"]   # optional: ranks the "Start here" picks by place
 """
 
 FACTS_TEMPLATE = f"""# Facts

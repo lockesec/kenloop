@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kenloop"
-version = "0.1.1"
+version = "0.1.2"
 description = "Do you ken? A study tool that grows with you: an AI assistant teaches, its memory carries context, and kenloop keeps an honest record of what you can answer on your own."
 readme = "README.md"
 license = "Apache-2.0"

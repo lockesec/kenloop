@@ -22,7 +22,7 @@ RECONCILE_ACTIVE = WORK_QUEUE | {"applied", "interviewing"}
 STAGES = ("none", "screen", "interview", "final", "offer")
 CLOSED_REASONS = ("rejected", "withdrew", "filled", "posting_gone", "no_response", "other")
 TEXT_KEYS = ("company", "role", "board", "org", "job_id", "source_url", "location", "salary", "resume",
-             "coverage_resume")
+             "coverage_resume", "pdf_dir")
 POSTING_KEYS = ("company", "role", "board", "org", "job_id", "source_url", "location", "salary")
 
 

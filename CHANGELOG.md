@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.1.2 (2026-11-10)
+
+**Upgrade note:** `ken gap` has three new kinds (`unverified`, `misread`, `process`). A ken older than
+this release reads a row with one of them as a damaged line, so upgrade every ken that reads a study
+home before recording a new kind there. `-` as the concept and `--by` are read fine by older versions.
+
+Found while running the daily digest beside a tracked pipeline:
+
+- **`ken jobs digest` knows the roles you track.** A posting you applied to, passed on or closed
+  leaves the tables for one line under "Already tracked"; one in your work queue stays, marked
+  "tracked". Matched on the posting URL, or the job id at the same company.
+- **Start here.** The digest opens with the five best new apply-first postings and a count of the rest;
+  `[digest] place_order` ranks them by the places you would rather.
+- **Follow-ups.** Roles in status `applied` are listed at day 7 (check the portal), day 14 (a short
+  note) and day 30 (the command that closes it as `no_response`).
+
+Moved in from a private helper, so the whole application runs from `ken`:
+
+- **`ken jobs build SLUG`** compiles a role's LaTeX resume, and the cover letter beside it, with
+  tectonic, and checks each PDF: one page, the last words of every bullet and of the closing
+  paragraph present in the PDF text (a line that ran off the page is named), and no text in the
+  bottom 0.25in. Missing tectonic, pdfinfo or pdftotext exits 2 and builds nothing.
+- **PDFs are filed by whether the employer has them**: `sent/`, `ready/` and `old/<slug>` under
+  `[build] pdf_root`. `ken jobs status` moves the folder when a role crosses over; `sent/` is the
+  record of what was submitted, so `build` refuses to write there (`--outdir` builds a copy
+  elsewhere) and a move never overwrites a folder.
+
+Found while studying a new topic with the tool:
+
+- **`ken profile --folded`** marks every learner note written so far as taken into the profile
+  (Updated today, `Folded:` their count), so a note folded in on the day it was written stops
+  showing as new. A count larger than the notes on file is not trusted; the day rule holds.
+- **`ken session --brief`** leaves the profile's text out on a second look; new notes still show.
+- **Empty rungs are named.** `ken place` and `ken session` say which rungs of a scale have no
+  concept yet, and `place` offers `--start 0` before the placement steps.
+- **Foundations notes are the lesson's preparation.** The scaffold says to write the note before
+  teaching, from sources read that day; it has a say-back section and separates what was read
+  from what was written from memory. `ken-tutor` has the tutor write it first; `ken-climb` teaches from it and finishes it after.
+- **Tutor skills.** A question with parts is numbered and a short reply is matched part by part
+  before any part is called skipped; `ken-place` offers "start at the bottom" before it asks.
+- A note that opens with today's date no longer shows the date twice.
+- **The tutor reviews its own teaching at the close.** `ken gaps SLUG --review` prints what to
+  re-read the session for, the gaps logged today, and one question for the learner ("did you
+  notice any sharp edges?"). `ken gap` takes three new kinds (`unverified`, `misread`,
+  `process`), `-` for a miss about the session, and `--by learner` for what the learner noticed,
+  kept in their words. `ken close` points at the review and `ken session` opens with the last
+  three gaps on the topic.
+- **A session opens with 3-4 recalls**, weakest and most overdue first; the other due reviews are
+  folded into the lesson where they fit, and the rest wait.
+- **References cite the human studies** behind self-explanation, question generation and
+  curiosity (`docs/references.md`).
+
 ## 0.1.1 (2026-11-09)
 
 - Python 3.11 or newer is required (3.9 and 3.10 are end-of-life). CI tests 3.11 to 3.14 on `ubuntu-latest`.

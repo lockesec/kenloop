@@ -21,8 +21,9 @@ ORDER = ("mastered", "good", "fair", "weak", "new")
 
 FOUNDATIONS = """# Foundations: {name} ({cid})
 
-A from-the-ground-up note for understanding, not for recall. Fill it from the topic's
-sources; mark what humanity knows (settled, frontier, open) where it matters.
+A from-the-ground-up note for understanding, not for recall. Write it BEFORE teaching, from
+sources read that day: it is the lesson's preparation. Mark what humanity knows (settled, frontier,
+open) where it matters. After teaching, add what the learner said back.
 
 ## In one line
 {desc}
@@ -39,8 +40,12 @@ sources; mark what humanity knows (settled, frontier, open) where it matters.
 ## Connections
 - (what it builds on, what builds on it, what it is often confused with)
 
+## Their say-back
+- (after teaching: what they said in their own words, and what it missed)
+
 ## Sources
-- (where each claim above comes from)
+- Read on (date): (each page or paper, and the claims it carries)
+- From memory, not checked: (anything above that was not read that day; none is the goal)
 """
 
 

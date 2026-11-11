@@ -8,8 +8,8 @@ modes: []
 
 Why a graded dialogue at all: an answer you accept without understanding is borrowed, and once you
 only borrow you cannot tell a good answer from a confident wrong one. So in a dialogue the learner
-does the reasoning and curiosity is graded like any answer (arXiv 2510.20635: self-questioning
-improved reasoning; self-reported curiosity was unreliable). It needs footing: on a field they
+does the reasoning (prompted self-explanation beats being given the explanation: Bisra et al.
+2018) and curiosity is graded like any answer. It needs footing: on a field they
 barely know, teach first (`ken-climb` at height 0-1).
 
 Read the dialogue contract once (`docs/dialogue-rules.md` in a clone of kenloop, or https://github.com/lockesec/kenloop/blob/main/docs/dialogue-rules.md). `ken talk <topic> [concept] --protocol`

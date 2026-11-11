@@ -54,7 +54,8 @@ Updated:
 
 <!-- The curated page a tutor reads first. Fill it from the learner notes, then set Updated to the
      day (YYYY-MM-DD); until then session shows every note. Rewrite it (do not append) when a note
-     changes a rule and set Updated again: session shows the notes from that day on. -->
+     changes a rule, then `ken profile --folded`: it sets Updated to today and counts the notes
+     taken in, so session shows only the notes written after that. -->
 
 ## Who
 
@@ -83,8 +84,39 @@ def profile_updated(cfg) -> str:
     return m.group(1) if m else ""
 
 
-def profile(cfg, scaffold=False) -> int:
+def profile_folded(cfg):
+    """How many learner notes the profile says it has taken in (its `Folded:` line), or None."""
     p = _profile_path(cfg)
+    if not p.is_file():
+        return None
+    m = re.search(r"^Folded:\s*(\d+)\s*$", p.read_text(encoding="utf-8"), re.M)
+    return int(m.group(1)) if m else None
+
+
+def _stamp_folded(cfg) -> int:
+    """Mark every learner note written so far as taken into the profile: Updated is today and
+    Folded is their count, so a note folded in on the day it was written stops showing as new."""
+    p = _profile_path(cfg)
+    if not p.is_file():
+        raise UsageError(f"no profile yet; `{H.PROG} profile --scaffold` writes one")
+    n = len(last_notes(_notes_path(cfg), None))
+    text = p.read_text(encoding="utf-8")
+    text = re.sub(r"^Folded:.*\n", "", text, flags=re.M)
+    stamp = f"Updated: {H.today().isoformat()}\nFolded: {n}\n"
+    if re.search(r"^Updated:.*$", text, re.M):
+        text = re.sub(r"^Updated:.*\n?", lambda _m: stamp, text, count=1, flags=re.M)
+    else:
+        head, _, rest = text.partition("\n")
+        text = f"{head}\n\n{stamp}{rest}"
+    H.write_text(p, text)
+    print(f"profile: Updated {H.today().isoformat()}, {n} learner note(s) folded in; session shows only later ones")
+    return OK
+
+
+def profile(cfg, scaffold=False, folded=False) -> int:
+    p = _profile_path(cfg)
+    if folded:
+        return _stamp_folded(cfg)
     if scaffold:
         if p.exists():                      # a file or anything else in the way: never overwritten
             print(f"{p.name} exists; nothing written")
@@ -118,7 +150,10 @@ def note(cfg, slug=None, text="", learner=False) -> int:
     day = H.today().isoformat()
     if f"\n## {day}\n" not in body:
         body = body.rstrip("\n") + f"\n\n## {day}\n"
-    body = body.rstrip("\n") + f"\n- {text.strip()}\n"
+    text = re.sub(rf"^{day}\s*:\s*", "", text.strip())      # the heading already carries the day
+    if not text:
+        raise UsageError("a note needs text")
+    body = body.rstrip("\n") + f"\n- {text}\n"
     H.write_text(p, body)
     print(f"note: added to {p.relative_to(cfg.home)}")
     return OK
@@ -138,7 +173,7 @@ def last_notes(path, n=3) -> list:
     return out if n is None else out[-n:]
 
 
-def session(cfg, slug) -> int:
+def session(cfg, slug, brief=False) -> int:
     L.need_topic(cfg, slug)
     conf = L.load_config(cfg, slug)
     cons = L.load_state(cfg, slug)["concepts"]
@@ -161,6 +196,9 @@ def session(cfg, slug) -> int:
         how = "by choice" if st.get("chosen") else "from placement" if st["start"] is not None else "not placed"
         print(f"  scale: {len(path)} rungs; start {st['start'] if st['start'] is not None else '-'} ({how})"
               + (f"; climbing rung {on} ({path[on]})" if on is not None else ""))
+        bare = O.empty_rungs(cons, path)
+        if bare:
+            print(f"  {O.empty_line(bare, path, slug)}")
     try:
         steps = MK.stack(cfg)
         if steps:
@@ -187,6 +225,14 @@ def session(cfg, slug) -> int:
     print("  tutor notes: " + ("none yet" if not notes else ""))
     for x in notes:
         print(f"    {x}")
+    from . import gaps as GP              # the last misses of the teaching here: not to be repeated
+    last, total, damaged = GP.latest(cfg, slug)
+    if damaged:
+        print(f"  tutor gaps: NOT EVALUABLE, {len(damaged)} damaged line(s) in {GP.LEDGER}; see `{H.PROG} doctor`")
+    elif last:
+        print(f"  tutor gaps here: {total}; the last {len(last)} (do not repeat them):")
+        for g in last:
+            print(f"    {g['date']} {GP.line(g)}")
     learner = last_notes(_notes_path(cfg), None)
     if _profile_path(cfg).is_file():
         day = profile_updated(cfg)
@@ -195,11 +241,20 @@ def session(cfg, slug) -> int:
             print(f"  learner profile: Updated {day} is later than today; read as no day, so every note shows")
             day = ""
         body = [ln for ln in re.sub(r"<!--.*?-->", "", _profile_path(cfg).read_text(encoding="utf-8"), flags=re.S).splitlines()
-                if ln.strip() and not ln.startswith(("# ", "Updated:"))]
-        print(f"  learner profile (updated {day or 'on no stated day'}):")
-        for ln in body:
-            print(f"    {ln}")
+                if ln.strip() and not ln.startswith(("# ", "Updated:", "Folded:"))]
+        if brief:
+            print(f"  learner profile (updated {day or 'on no stated day'}): {len(body)} line(s), "
+                  f"not shown (--brief); `{H.PROG} profile` prints it")
+        else:
+            print(f"  learner profile (updated {day or 'on no stated day'}):")
+            for ln in body:
+                print(f"    {ln}")
         newer = [x for x in learner if x[:10] >= day] if day else learner     # a same-day note shows
+        n = profile_folded(cfg)
+        # a Folded count is exact where the day is not: notes are appended, so the first n are in.
+        # More counted than exist means notes were removed: the count is not trusted, the day rule holds
+        if day and n is not None and n <= len(learner):
+            newer = learner[n:]
         print(f"  learner notes since the profile: " + ("none" if not newer else f"{len(newer)} (fold them in)")
               + (f"; {len(learner) - len(newer)} older one(s) are in the profile" if day and len(learner) > len(newer) else ""))
         for x in newer:
@@ -269,7 +324,9 @@ def commands(groups) -> None:
     a = g.add_parser("session", help="start a study session: settings, where you are, tutor notes, open questions, "
                                      "reached scouts and what to do next in this topic")
     a.add_argument("slug")
-    a.set_defaults(run=lambda cfg, ns: session(cfg, ns.slug))
+    a.add_argument("--brief", action="store_true", help="leave the learner profile's text out (a second look "
+                                                        "in the same sitting); new notes still show")
+    a.set_defaults(run=lambda cfg, ns: session(cfg, ns.slug, ns.brief))
     a = g.add_parser("note", help="a dated tutor note on how you learn: per topic, or --learner across topics")
     a.add_argument("slug", nargs="?")
     a.add_argument("text")
@@ -278,7 +335,9 @@ def commands(groups) -> None:
     a = g.add_parser("profile", help="the curated learner profile the tutor reads first (profile.md); "
                                      "--scaffold writes the template")
     a.add_argument("--scaffold", action="store_true")
-    a.set_defaults(run=lambda cfg, ns: profile(cfg, ns.scaffold))
+    a.add_argument("--folded", action="store_true", help="the profile now holds every learner note written "
+                                                         "so far: set Updated to today and count them")
+    a.set_defaults(run=lambda cfg, ns: profile(cfg, ns.scaffold, ns.folded))
     a = g.add_parser("taught", help="record that a concept was taught today (teach mode): no credit, no schedule")
     a.add_argument("slug")
     a.add_argument("concept")

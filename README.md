@@ -72,7 +72,7 @@ Go as fast as you like: an early unaided answer can earn credit, subject to the 
 | Follow a gap deeper | Connects concepts to their parts and to the same idea in other topics, and turns gaps into further study | `map`, `branch` |
 | Say what feels shaky | Puts what you mark as a problem first and keeps the way back to what started it; marks earn no credit | `mark`, `trail` |
 | Decide what to do now | Suggests one next action and explains why; you can pin it to a topic | `next`, `focus` |
-| Keep the teaching honest | A miss caused by a gap in the explanation counts against the tutor, never you | `gap`, `gaps` |
+| Keep the teaching honest | A miss caused by a gap in the explanation counts against the tutor, never you; at each close the tutor reviews its own teaching and asks what you noticed | `gap`, `gaps --review` |
 | Take it with you | A reference sheet and session printouts, as pages or PDF | `print` |
 
 Topics can mark concepts as **settled**, **frontier** (active research), or **open**. Your
@@ -215,9 +215,7 @@ in separate AI sessions.
   [tutor-skills](https://github.com/bevibing/tutor-skills) and [learn-faster-kit](https://github.com/hluaguo/learn-faster-kit) (MIT, same patterns);
   [career-ops](https://github.com/career-ops-hq/career-ops) (MIT, status enum, weighted fit scorecard);
   [ai-job-search](https://github.com/MadsLorentzen/ai-job-search) (MIT, ATS keyword coverage).
-- **Research:** curiosity grading and the `question` move draw on Wang et al.,
-  “Why Did Apple Fall: Evaluating Curiosity in Large Language Models” (2025).
-  See [references](docs/references.md).
+- **Research:** the learning-science sources are in [references](docs/references.md).
 
 Attribution corrections are welcome.
 

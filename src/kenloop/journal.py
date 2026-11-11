@@ -90,6 +90,7 @@ def close(cfg, topic, three=(), fuzzy="", perceived=None, ideas=(), **counts) ->
     if row["fuzzy"]:
         from . import session as SS
         SS.note(cfg, topic, f"fuzzy: {row['fuzzy']}")
+    print(f"then the tutor's review: `{H.PROG} gaps {topic} --review`")
     return OK
 
 
