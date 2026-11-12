@@ -161,6 +161,13 @@ def load(home: Path, how: str = "") -> CareerConfig:
                 raise NotEvaluable(f"config: `sources.targets[{i}]` (workday) needs `site`, the career site's "
                                    "name in its URL (e.g. \"External\")")
             tgt.update(host=host, site=site)
+        elif t["board"] == "icims":
+            from .sources import ICIMS_HOST
+            host = t.get("host")
+            if not isinstance(host, str) or not ICIMS_HOST.match(host):
+                raise NotEvaluable(f"config: `sources.targets[{i}]` (icims) needs `host` like "
+                                   "\"careers-acme.icims.com\"")
+            tgt.update(host=host)
         cfg.targets.append(tgt)
     al = src.get("aliases", {}) or {}
     if not isinstance(al, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in al.items()):

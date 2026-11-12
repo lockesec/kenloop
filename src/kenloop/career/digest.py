@@ -406,8 +406,8 @@ def run(cfg, settings: dict, today=None, write: bool = True, progress: bool = Fa
     listed: set = set()
     rows, keys = [], set()
     for t in cfg.targets:
-        # Workday is searched server side, once per search word; the others list everything
-        words = (settings["search"] or [""]) if t["board"] == "workday" else [None]
+        # Workday and iCIMS are searched server side, once per search word; the others list everything
+        words = (settings["search"] or [""]) if t["board"] in ("workday", "icims") else [None]
         reached = False
         for w in words:
             label = f"{t['board']}:{t['org']}" + (f" ({w!r})" if w else "")

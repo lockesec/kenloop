@@ -6,6 +6,11 @@
 "re-teach first" in the stored state, so state written by an older ken reads as drift (exit 3) until it
 is rebuilt from the log.
 
+- **iCIMS boards.** `{board = "icims", org = "acme", host = "careers-acme.icims.com"}` reads an iCIMS
+  career site's own search page (iCIMS has no public posting API), searched with your search words and
+  read page by page to its "Page X of Y"; a posting's date, location and text come from the schema.org
+  JobPosting its page embeds, read only for titles in your families. A real application on an iCIMS
+  board was found by hand, too late, because no board type could watch it.
 - **A mistyped pay range is shown as posted but never judged.** A range whose annualised top is more
   than 8x its bottom, or above $2,000,000, reads as unknown against your floor (it used to pass it) and
   the digest marks it "as posted; looks mistyped". A real posting stated "$92,000 - $11,500,000 USD".

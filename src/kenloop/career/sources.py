@@ -4,7 +4,8 @@ happened: ``ok`` (the board listed postings; a keyword filter may keep none of t
 ``error`` (it did not answer). An error is never an empty board, and an empty
 board is never evidence that a posting closed.
 
-Adapters: the public posting APIs of Greenhouse, Lever and Ashby, Workday's job-site search
+Adapters: the public posting APIs of Greenhouse, Lever and Ashby, Workday's job-site search,
+an iCIMS career site's own search page (HTML; postings read from their schema.org JobPosting)
 (``cxs``; ranked by relevance and paged, so a Workday listing can be PARTIAL: ``complete`` says so,
 and a partial listing is never read as a posting closing), plus
 ``fixture`` (a local JSON file, ``HOME/fixtures/<org>.json``, for tests,
@@ -280,8 +281,108 @@ def _workday(org, target, keyword, detail_for=None):
     return out, (total or 0)
 
 
+ICIMS_HOST = re.compile(r"^[a-z0-9-]{1,63}\.icims\.com$")
+ICIMS_MAX_PAGES = 50        # search pages read per keyword (20 postings each); past this the listing is partial
+_ICIMS_ANCHOR = re.compile(r"<a\s[^>]*\bhref=\"(?P<url>https://(?P<host>[a-z0-9.-]+)/jobs/(?P<id>\d+)/[^\"]*)\"[^>]*>",
+                           re.IGNORECASE)
+_ICIMS_TITLE_ATTR = re.compile(r"\btitle=\"\d+\s*-\s*(?P<t>[^\"]*)\"", re.IGNORECASE)
+_ICIMS_PAGES = re.compile(r"Page\s+(\d+)\s+of\s+(\d+)", re.IGNORECASE)
+_LD_JSON = re.compile(r"<script[^>]+application/ld\+json[^>]*>(.*?)</script>", re.IGNORECASE | re.DOTALL)
+
+
+def _get_text(url: str) -> str:
+    """A page's HTML, paced per host like the JSON reads."""
+    host = urllib.parse.urlsplit(url).netloc
+    wait = MIN_INTERVAL - (time.monotonic() - _last_hit.get(host, -1e9))
+    if wait > 0:
+        time.sleep(wait)
+    _last_hit[host] = time.monotonic()
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        body = r.read(MAX_BYTES + 1)
+    if len(body) > MAX_BYTES:
+        raise ValueError(f"response larger than {MAX_BYTES} bytes")
+    return body.decode("utf-8", "replace")
+
+
+def icims_listing(page: str, host: str) -> tuple:
+    """([(job id, url, title)], (page, of pages) or None) from one iCIMS search page. Only links to
+    this board's own /jobs/<id>/ pages count; the title is the anchor's 'ID - Title' attribute, else
+    its <h3>."""
+    out, seen = [], set()
+    for m in _ICIMS_ANCHOR.finditer(page or ""):
+        if m.group("host").lower() != host or m.group("id") in seen:
+            continue
+        tag_end = page.find("</a>", m.end())
+        tm = _ICIMS_TITLE_ATTR.search(m.group(0))
+        title = tm.group("t") if tm else re.sub(r"<[^>]+>", " ", page[m.end():tag_end if tag_end > 0 else m.end()])
+        title = re.sub(r"\s+", " ", html.unescape(title)).replace("Job Title", "").strip()
+        if not title:
+            continue
+        seen.add(m.group("id"))
+        out.append((m.group("id"), html.unescape(m.group("url")).replace("?in_iframe=1", ""), title))
+    pg = _ICIMS_PAGES.search(page or "")
+    return out, ((int(pg.group(1)), int(pg.group(2))) if pg else None)
+
+
+def job_posting_ld(page: str) -> dict:
+    """The schema.org JobPosting a posting page embeds ({} when it has none)."""
+    for block in _LD_JSON.findall(page or ""):
+        try:
+            d = json.loads(block)
+        except ValueError:
+            continue
+        for item in (d if isinstance(d, list) else [d]):
+            if isinstance(item, dict) and item.get("@type") == "JobPosting":
+                return item
+    return {}
+
+
+def _ld_location(ld: dict) -> str:
+    places = ld.get("jobLocation") or []
+    parts = []
+    for pl in (places if isinstance(places, list) else [places]):
+        a = (pl or {}).get("address") or {} if isinstance(pl, dict) else {}
+        bits = [str(a.get(k)) for k in ("addressLocality", "addressRegion", "addressCountry")
+                if a.get(k) and str(a.get(k)).upper() != "UNAVAILABLE"]
+        if bits:
+            parts.append(", ".join(bits))
+    if str(ld.get("jobLocationType") or "").upper() == "TELECOMMUTE":
+        parts.insert(0, "Remote")
+    return "; ".join(dict.fromkeys(parts))
+
+
+def _icims(org, target, keyword, detail_for=None):
+    """An iCIMS career site's own search page (HTML; iCIMS has no public posting API). Searched with
+    the keyword server side and read page by page to its 'Page X of Y'; a listing cut at
+    ICIMS_MAX_PAGES is partial. Each posting's page embeds a schema.org JobPosting (title, date posted,
+    location, description), read only for titles `detail_for` accepts, like Workday. Found in use
+    (2026-11-11): an application on an iCIMS board was found by hand, too late, because nothing watched it."""
+    host = (target or {}).get("host")
+    if not host or not ICIMS_HOST.match(host):
+        raise ValueError(f"icims:{org} needs `host` in its [sources] target (e.g. host = \"careers-acme.icims.com\")")
+    base = f"https://{host}/jobs/search?ss=1&in_iframe=1&searchKeyword={urllib.parse.quote(keyword or '')}"
+    out, n, pages = [], 0, None
+    while n < ICIMS_MAX_PAGES and (pages is None or n < pages):
+        listing, pg = icims_listing(_get_text(f"{base}&pr={n}"), host)
+        if pages is None:
+            pages = pg[1] if pg else 1
+        if not listing:
+            break
+        for job_id, url, title in listing:
+            ld = {}
+            if detail_for is None or detail_for(title):
+                ld = job_posting_ld(_get_text(url + "?in_iframe=1"))
+            out.append(_norm("icims", org, job_id, ld.get("title") or title, _ld_location(ld), url,
+                             strip_html(ld.get("description"), structure=True),
+                             posted=iso_day(ld.get("datePosted"))))
+        n += 1
+    complete = pages is not None and n >= pages
+    return out, complete
+
+
 BOARDS = {"greenhouse": _greenhouse, "lever": _lever, "ashby": _ashby, "workday": _workday,
-          "fixture": _fixture}
+          "icims": _icims, "fixture": _fixture}
 
 
 def fetch(board: str, org: str, cfg, keyword: str | None = None, target: dict | None = None,
@@ -302,6 +403,12 @@ def fetch(board: str, org: str, cfg, keyword: str | None = None, target: dict | 
                 return FetchResult("empty") if not matched else FetchResult(
                     "error", error=f"workday:{org}: the search counted {matched} but listed none")
             return FetchResult("ok", postings, total=matched, complete=len(postings) >= matched)
+        if board == "icims":
+            # searched server side too; iCIMS states pages, not a count, so `complete` comes from them
+            postings, complete = fn(org, target, keyword, detail_for)
+            if not postings:
+                return FetchResult("empty")
+            return FetchResult("ok", postings, total=len(postings), complete=complete)
         postings = fn(org, cfg) if board == "fixture" else fn(org)
     except (urllib.error.URLError, OSError, ValueError, AttributeError, TypeError, UnicodeDecodeError) as e:
         return FetchResult("error", error=f"{board}:{org}: {e}")

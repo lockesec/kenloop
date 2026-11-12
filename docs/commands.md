@@ -508,7 +508,7 @@ families = [   # the title picks the family; first match wins
 ]
 near = ["austin", "texas"]   # a non-remote posting fits when its location holds one of these
 exclude = ["product manager", "sales"]   # titles that are never this search
-search = ["security"]        # Workday is searched server side, once per word
+search = ["security"]        # Workday and iCIMS are searched server side, once per word
 fresh_days = 14
 place_order = ["austin", "remote", "texas"]   # optional: which places you would rather; ranks the top picks
 ```
@@ -539,6 +539,12 @@ when its URL is the role's `source_url`, or its id is the role's `job_id` at the
 | applied, interviewing, offer, rejected, passed, closed | leaves the tables; one line under **Already tracked** ("already applied 03-18") |
 | found, scored, tailoring, on-hold | stays in its table, marked "(tracked: scored)"; never a Start-here pick |
 
+A posting that is NOT a tracked role but has the same company and title as one (a repost, or a second
+opening under a new id) keeps its row and says so: "(same title as tracked `slug`, already applied
+11-10: a different posting)". A pay range the posting states as mistyped (its top more than 8x its
+bottom, or above $2,000,000 a year) is shown "as posted; looks mistyped" and reads as unknown against
+`pay_min`.
+
 **Follow-ups** lists every role in status `applied` by days since the applied date: from day 7,
 check the portal and that the posting is still up; from day 14, send a short note if you have a
 recruiter contact; from day 30, the command that closes it as `no_response`. These are
@@ -549,11 +555,17 @@ read is counted at the top, since a posting may then be one you already track.
 It writes `digests/<date>.md` and `digests/seen.json` (the day each posting was first listed:
 what "new" means); `--dry-run` prints and writes nothing. A board that did not answer is named
 at the top and the exit code is 2: an unreachable board is never "no new jobs". A Workday
-listing is searched and paged by relevance, so it can be partial; the digest says so, and
+or iCIMS listing is searched and paged, so it can be partial; the digest says so, and
 `jobs reconcile` never marks a role gone from a partial listing.
 
 Workday targets need the career site beside the org:
 `{board = "workday", org = "acme", host = "acme.wd1.myworkdayjobs.com", site = "External"}`.
+A Workday search is read to the end of its listing, up to 2,000 postings.
+
+iCIMS targets need the career site's host: `{board = "icims", org = "acme", host = "careers-acme.icims.com"}`.
+iCIMS has no public posting API, so its own search page is read (HTML, one paced request per page of
+20) to its "Page X of Y", up to 50 pages; a posting's date, location and text come from the schema.org
+JobPosting its page embeds, read only for titles in your families.
 
 ### Lexicon packs
 
