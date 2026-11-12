@@ -170,6 +170,21 @@ def tracked_role(row: dict, roles: list):
     return min(hits, key=lambda sm: _STATUS_RANK.get(sm[1].get("status"), 99)) if hits else None
 
 
+def _title_key(title) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (title or "").lower()).strip()
+
+
+def related_role(row: dict, roles: list):
+    """(slug, meta) of a tracked role at the same company with the same title as this UNtracked
+    posting: a second opening or a repost. Found in use (2026-11-12): a Zscaler 'Detection Analyst'
+    posted under a new id showed as NEW with nothing saying the same title was applied to two days
+    before. It is noted on the row, never moved out of the tables: it is a different posting."""
+    key = _title_key(row.get("title"))
+    hits = [(slug, m) for slug, m in roles
+            if key and _title_key(m.get("role")) == key and _same_org(m, row)]
+    return min(hits, key=lambda sm: _STATUS_RANK.get(sm[1].get("status"), 99)) if hits else None
+
+
 def _tracked_label(t: dict) -> str:
     day = f" {t['applied'][5:]}" if t.get("applied") else ""
     if t["status"] == "applied":
@@ -213,6 +228,8 @@ def pay_label(cfg, p: dict) -> tuple:
     per = W.PER_YEAR.get(pay["interval"], 1)
     lo, hi = pay["min"] * per, pay["max"] * per
     shown = f"{W._money(lo, pay['currency'])}-{W._money(hi, pay['currency'])}"
+    if W.implausible(pay):
+        shown += " (as posted; looks mistyped)"
     return verdict, why, shown + (" (hourly)" if pay["interval"] == "hour" else "")
 
 
@@ -330,6 +347,9 @@ def _line(r: dict, today, new_col: bool = True) -> str:
     role = f"[{r['title']}]({r['url']})" if r["url"] else r["title"]
     if r.get("tracked"):
         role += f" (tracked: {r['tracked']['status']})"
+    elif r.get("related"):
+        role += (f" (same title as tracked `{r['related']['slug']}`, {_tracked_label(r['related'])}: "
+                 "a different posting)")
     note = f" ({r['reason']})" if r["reason"] else ""
     flag = f" FLAG: {r['flag']}" if r["flag"] else ""
     first = f"| {'NEW' if r['new'] else ''} " if new_col else ""
@@ -419,6 +439,11 @@ def run(cfg, settings: dict, today=None, write: bool = True, progress: bool = Fa
                     row["tracked"] = {"slug": hit[0], "status": hit[1].get("status"),
                                       "applied": hit[1].get("applied") or "",
                                       "reason": (hit[1].get("outcome") or {}).get("closed_reason") or ""}
+                else:
+                    rel = related_role(row, roles)
+                    if rel:
+                        row["related"] = {"slug": rel[0], "status": rel[1].get("status"),
+                                          "applied": rel[1].get("applied") or "", "reason": ""}
                 rows.append(row)
         report["reached"] += reached
     report["followups"] = follow_ups(roles, today, listed)

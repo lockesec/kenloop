@@ -295,6 +295,26 @@ def test_match_by_url_and_by_workday_requisition(dcfg, home):
     assert D.tracked_role({"org": "acme", "ext_id": "/job/Remote/Other_R30635", "url": ""}, roles) is None
 
 
+def test_a_second_posting_of_a_tracked_title_is_marked_related_not_moved(dcfg, home):
+    """Found in use (2026-11-12): Zscaler 'Detection Analyst' under a new id (5277840007) showed as NEW
+    and bare, while the posting applied to on 11-10 (5219486007) sat under Already tracked."""
+    roles = [("redcanary-detection-analyst", {"company": "Zscaler (Red Canary)", "org": "zscaler",
+                                              "role": "Detection Analyst", "status": "applied",
+                                              "applied": "2026-11-10", "job_id": "5219486007"})]
+    new = {"org": "zscaler", "ext_id": "5277840007", "url": "https://boards.test/zscaler/5277840007",
+           "title": "Detection  Analyst"}
+    assert D.tracked_role(new, roles) is None                                # a different posting
+    assert D.related_role(new, roles)[0] == "redcanary-detection-analyst"
+    assert D.related_role(dict(new, title="Detection Engineer"), roles) is None
+    assert D.related_role(dict(new, org="globex"), roles) is None            # same title elsewhere: unrelated
+    row = {"new": True, "posted": None, "org": "zscaler", "title": "Detection Analyst", "url": new["url"],
+           "reason": "", "flag": "", "where": "remote", "pay": "not stated",
+           "related": {"slug": "redcanary-detection-analyst", "status": "applied", "applied": "2026-11-10",
+                       "reason": ""}}
+    line = D._line(row, None)
+    assert "(same title as tracked `redcanary-detection-analyst`, already applied 11-10: a different posting)" in line
+
+
 def test_the_same_job_id_at_another_company_is_not_a_match(dcfg, home):
     roles = [("globex-soc", {"company": "Globex", "role": "r", "status": "applied", "job_id": "77",
                              "source_url": "https://boards.test/globex/jobs/77"})]

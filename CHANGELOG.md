@@ -6,6 +6,12 @@
 "re-teach first" in the stored state, so state written by an older ken reads as drift (exit 3) until it
 is rebuilt from the log.
 
+- **A mistyped pay range is shown as posted but never judged.** A range whose annualised top is more
+  than 8x its bottom, or above $2,000,000, reads as unknown against your floor (it used to pass it) and
+  the digest marks it "as posted; looks mistyped". A real posting stated "$92,000 - $11,500,000 USD".
+- **A second posting of a tracked title says so.** A posting with a new id but the same company and
+  title as a role you track keeps its row and is marked "same title as tracked `slug`, already applied
+  11-10: a different posting", so a repost or second opening is not read as unrelated news.
 - **Workday boards are read to the end of their listing.** A search used to stop at 200 postings and
   report the rest as partial (a real digest read 200 of 382, of 1,659 and of 2,000 matches). It now reads
   up to 2,000; listing pages are one paced request per 20, and a posting's detail is still read only for

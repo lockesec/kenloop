@@ -224,6 +224,26 @@ def pay_from_text(text: str, currency: str = None):
     return out
 
 
+#: a range is read as a typo, not as pay, past either bound (annualised). Real ranges in a 2026-11-12
+#: digest ran 1.2x-2.8x top to bottom; the one that did not was "$92,000 - $11,500,000" (a posting typo).
+IMPLAUSIBLE_RATIO = 8
+IMPLAUSIBLE_TOP = 2_000_000
+
+
+def implausible(pay) -> str:
+    """Why a stated range cannot be the real pay ("" when it can): its top is many times its bottom,
+    or above any salary. Such a range is shown as posted but never passes or fails a floor."""
+    if not pay or not pay.get("min") or not pay.get("max"):
+        return ""
+    per = PER_YEAR.get(pay.get("interval"), 1)
+    lo, hi = pay["min"] * per, pay["max"] * per
+    if hi > IMPLAUSIBLE_TOP:
+        return f"its top, {_money(hi, pay.get('currency', 'USD'))} a year, is above any salary"
+    if lo > 0 and hi / lo > IMPLAUSIBLE_RATIO:
+        return f"its top is {hi / lo:.0f}x its bottom"
+    return ""
+
+
 def nonpay_only(text: str) -> list:
     """The labels of ranges found when every range in the text is a bonus, stipend, equity,
     grant or similar (so no pay is stated), else []."""
@@ -347,6 +367,10 @@ def evaluate(cfg, meta: dict, jd: str = "") -> list:
         elif pay["currency"] != cur:
             out.append({"filter": "pay", "verdict": "unknown", "source": pay["source"],
                         "reason": f"pay is in {pay['currency']}, the floor in {cur}; no conversion is made"})
+        elif implausible(pay):
+            out.append({"filter": "pay", "verdict": "unknown", "source": pay["source"],
+                        "reason": f"the stated range looks mistyped ({implausible(pay)}), so it is not "
+                                  f"judged against your floor ({pay['source']})"})
         else:
             per = PER_YEAR.get(pay["interval"], 1)
             top, note = pay["max"] * per, ""

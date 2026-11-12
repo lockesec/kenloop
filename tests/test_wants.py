@@ -96,6 +96,34 @@ def test_pay_floor_and_the_no_range_policy(home):
     assert v == "unknown" and "EUR" in why
 
 
+def test_a_mistyped_range_is_shown_as_posted_but_never_passes_a_floor(home):
+    """Found in use (2026-11-12 digest): a Zscaler posting stated "$92,000 - $11,500,000 USD". Its top
+    cleared any floor and the digest showed it as pay. Real ranges that day ran 1.2x-2.8x."""
+    cfg = cfg_with(home, '[wants]\npay_min = 120000\n')
+    jd = "Base Pay Range\n$92,000 — $11,500,000 USD"
+    v, why = verdicts(cfg, meta(location="Remote US"), jd=jd)["pay"]
+    assert v == "unknown" and "looks mistyped" in why and "above any salary" in why
+    wide = {"min": 20000, "max": 200000, "currency": "USD", "interval": "year", "source": "board field"}
+    v, why = verdicts(cfg, meta(pay=wide))["pay"]
+    assert v == "unknown" and "10x its bottom" in why
+    for lo, hi in ((86800, 198000), (86000, 240000), (186065, 186065), (92000, 115000)):  # real, or the likely intent
+        real = {"min": lo, "max": hi, "currency": "USD", "interval": "year", "source": "board field"}
+        assert wants.implausible(real) == "", (lo, hi)
+    hourly = {"min": 40, "max": 60, "currency": "USD", "interval": "hour", "source": "board field"}
+    assert wants.implausible(hourly) == ""                                   # annualised before judging
+    assert wants.implausible(None) == "" and wants.implausible({"min": 0, "max": 5}) == ""
+
+
+def test_the_digest_marks_a_mistyped_range_beside_the_figures(home):
+    from kenloop.career import digest
+    cfg = cfg_with(home, '[wants]\npay_min = 120000\n')
+    p = {"title": "Detection Analyst", "location": "Remote US",
+         "jd": "Base Pay Range\n$92,000 — $11,500,000 USD"}
+    verdict, why, shown = digest.pay_label(cfg, p)
+    assert shown.startswith("$92,000-$11,500,000") and "looks mistyped" in shown
+    assert verdict != "exclude"
+
+
 def test_an_unknown_is_kept_unless_its_own_policy_drops_it(home):
     keep = cfg_with(home, '[wants]\npay_min = 120000\n')
     assert wants.decide(keep, wants.evaluate(keep, meta(), ""))[0] == "keep"
