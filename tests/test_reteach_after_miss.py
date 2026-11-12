@@ -4,6 +4,11 @@ learn it? a cold miss -> cold miss makes no sense".
 
 Now a miss marks the concept re-teach first: `due` says so, and teaching it sets the next cold recall
 for the day after the teaching. An unaided right answer clears the mark; a partial does not set it.
+
+Found in use (2026-11-11): four partials each lacked a piece (what a management group is for, what
+`extend` does), got a few lines of correction and came back cold the next day: the same hole in a
+milder form. A partial recorded with `--piece` (what it lacked) is marked re-teach first too; a
+partial that is only a slip of wording is recorded without it and just comes back.
 """
 import pytest
 
@@ -58,3 +63,36 @@ def test_rebuild_from_the_log_gives_the_same_mark(cfg, t):
     (cfg.home / "topics" / "t" / "concepts.json").unlink()               # derived state gone: replay the log
     I.rebuild(cfg, "t")
     assert c0(cfg)["reteach"] == before
+
+
+def test_a_partial_with_a_missing_piece_is_marked_and_due_names_the_piece(cfg, t, monkeypatch, capsys):
+    L.record(cfg, "t", "d:c0", "partial", qtype="recall", confidence="med", piece="what flows down", quiet=True)
+    c = c0(cfg)
+    assert c["reteach"] == "2030-03-20" and c["reteach_piece"] == "what flows down"
+    monkeypatch.setenv("KENLOOP_TODAY", "2030-03-21")
+    capsys.readouterr()
+    R.due(cfg, "t")
+    out = capsys.readouterr().out
+    assert "RE-TEACH FIRST: partial on 2030-03-20, missing: what flows down; teach that piece" in out
+    L.taught(cfg, "t", "d:c0", quiet=True)
+    c = c0(cfg)
+    assert "reteach" not in c and "reteach_piece" not in c and c["due"] == "2030-03-22"
+
+
+def test_a_piece_belongs_to_a_partial_only_and_a_later_miss_drops_it(cfg, t, monkeypatch):
+    with pytest.raises(L.UsageError):
+        L.record(cfg, "t", "d:c0", "miss", qtype="recall", piece="x", quiet=True)
+    with pytest.raises(L.UsageError):
+        L.record(cfg, "t", "d:c0", "ok", qtype="recall", piece="x", quiet=True)
+    L.record(cfg, "t", "d:c0", "partial", qtype="recall", piece="x", quiet=True)
+    monkeypatch.setenv("KENLOOP_TODAY", "2030-03-21")
+    L.record(cfg, "t", "d:c0", "miss", qtype="recall", confidence="low", quiet=True)
+    c = c0(cfg)
+    assert c["reteach"] == "2030-03-21" and "reteach_piece" not in c
+
+
+def test_rebuild_from_the_log_keeps_the_piece(cfg, t):
+    L.record(cfg, "t", "d:c0", "partial", qtype="recall", piece="what flows down", quiet=True)
+    (cfg.home / "topics" / "t" / "concepts.json").unlink()
+    I.rebuild(cfg, "t")
+    assert c0(cfg)["reteach_piece"] == "what flows down"

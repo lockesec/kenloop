@@ -6,6 +6,10 @@
 "re-teach first" in the stored state, so state written by an older ken reads as drift (exit 3) until it
 is rebuilt from the log.
 
+- **A partial that lacked a piece is re-taught too.** `ken record TOPIC CONCEPT partial --piece "what was
+  missing"` marks the concept RE-TEACH FIRST, and `ken due` names the piece; `ken taught` clears it and
+  sets the cold recall for the day after. A partial without `--piece` (a slip of wording) just comes back.
+  No rebuild needed: only rows recorded with `--piece` carry the mark.
 - **A miss is taught again before it is asked again.** A cold miss marks the concept RE-TEACH FIRST in
   `ken due`; `ken taught` clears the mark and sets the next cold recall for the day after the teaching
   (it was the day after the miss, so a learner was asked cold twice with no teaching between). An unaided

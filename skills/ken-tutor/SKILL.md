@@ -30,7 +30,12 @@ credit, and a dialogue never moves credit.
 - **A miss is taught again before it is asked again.** `ken due` marks a concept a cold recall
   missed as RE-TEACH FIRST: teach it (it does not count toward the 3-4), record `ken taught`, and its
   next cold recall is due the day after the teaching. Never ask it cold again before that: a cold miss
-  followed by another cold miss measures the same gap twice. A partial is fixed on the spot instead.
+  followed by another cold miss measures the same gap twice.
+- **A partial that lacked a piece is the same gap, milder.** Record it with `--piece "what was
+  missing"`: it is marked RE-TEACH FIRST like a miss, and `ken due` names the piece to teach. A
+  partial that is only a slip of wording is fixed on the spot and recorded without `--piece`.
+- **One thing per recall question.** A two-part recall ("name the levels and what flows down") gets
+  the first part answered and makes a partial nearly certain.
 - **What is still due at the end waits** for the next session. A day late costs little; a long run
   of recalls before anything new drains the session the lesson needs.
 

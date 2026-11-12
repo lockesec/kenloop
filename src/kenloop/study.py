@@ -38,7 +38,7 @@ def _record(cfg, ns) -> int:
     L.record(cfg, ns.slug, ns.concept, ns.result, ns.note, ns.guess, ns.confidence,
              ns.hint_depth, ns.lookup, ns.mode, ns.qtype, ns.etype,
              rubric=L.parse_rubric(ns.rubric) if ns.rubric else None, grader=ns.grader,
-             belief=belief, open_questions=ns.open, depth=ns.depth)
+             belief=belief, open_questions=ns.open, depth=ns.depth, piece=ns.piece)
     return OK
 
 
@@ -186,6 +186,8 @@ def commands(groups) -> None:
     a.add_argument("--confidence", default="", help="low, med or high, stated before seeing the answer")
     a.add_argument("--hint-depth", type=int, default=0, help="0-4, the highest hint used (0 = none, the default)")
     a.add_argument("--lookup", action="store_true", help="read the answer (hint depth 4)")
+    a.add_argument("--piece", default="", help="with partial: the piece the answer lacked (not a slip of wording); "
+                                               "the concept is marked re-teach first, like a miss")
     a.add_argument("--mode", default="practice", help="practice, exam, diagnose, learn, dialogue or predict "
                                                       "(their guess before the explanation: never credited)")
     a.add_argument("--depth", default="", choices=("exam", "mechanism", "first-principles"),

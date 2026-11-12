@@ -91,7 +91,7 @@ EDGES = {"part-of": "part_of", "before": "before"}   # syllabus marker -> concep
 MASTERY_FIELDS = ("attempts", "correct", "streak", "partials", "guesses", "hints", "correct_days",
                   "errors", "resolved_idx", "by_type", "by_conf", "last_seen", "stability",
                   "difficulty", "interval", "due", "exam_clamp", "dialogues", "by_reasoning", "repeats",
-                  "taught", "last_taught", "predictions", "last_predicted", "reteach")
+                  "taught", "last_taught", "predictions", "last_predicted", "reteach", "reteach_piece")
 RETENTION_DAYS = 2
 INTERFERENCE_OTHERS = 3
 BREADTH_TYPES, BREADTH_RATE = 2, 0.6
@@ -513,6 +513,8 @@ def _check_row(r) -> None:
             raise ValueError(f"{k} {v!r}")
     if not isinstance(r.get("guess", False), bool) or not isinstance(r.get("note", ""), str):
         raise ValueError("guess/note type")
+    if not isinstance(r.get("piece", ""), str) or (r.get("piece") and r.get("result") != "partial"):
+        raise ValueError("piece is a string on a partial row")
     if r.get("depth", "") not in ("",) + DEPTHS:
         raise ValueError(f"depth {r.get('depth')!r}")
     if not isinstance(r.get("due", False), bool):
@@ -671,6 +673,7 @@ def apply_row(c: dict, row: dict, exam, repeat=False) -> None:
             # re-taught after a miss: the next cold recall is the day after THIS teaching, not the
             # day after the miss (a cold miss followed by another cold miss measures one gap twice)
             c.pop("reteach")
+            c.pop("reteach_piece", None)
             c["due"] = (_dt.date.fromisoformat(day) + _dt.timedelta(days=1)).isoformat()
         elif not c.get("due"):
             # no credit, but the first cold recall is scheduled: tomorrow, with no interval (edge
@@ -736,8 +739,15 @@ def apply_row(c: dict, row: dict, exam, repeat=False) -> None:
     if f["unaided_ok"]:
         _resolve_errors(c, qt)
         c.pop("reteach", None)
+        c.pop("reteach_piece", None)
     elif result == "miss" and not f["massed"]:
         c["reteach"] = day          # a miss is taught again before it is asked cold again
+        c.pop("reteach_piece", None)
+    elif result == "partial" and row.get("piece") and not f["massed"]:
+        # a partial that lacked a piece (not a slip of wording) is the same gap in a milder form:
+        # the piece is taught before the concept is asked cold again
+        c["reteach"] = day
+        c["reteach_piece"] = row["piece"]
     if not f["ok"] or f["guess"] or f["assisted"] or f["massed"]:
         g = fsrs.AGAIN
     elif f["effortful"]:
@@ -921,7 +931,7 @@ def graded_copy(cfg, slug, transcript: str):
 
 def record(cfg, slug, concept, result, note="", guess=False, confidence="", hint_depth=0,
            lookup=False, mode="practice", qtype="", etype="", quiet=False, rubric=None, grader="",
-           belief=None, open_questions=(), depth="", due=None) -> dict:
+           belief=None, open_questions=(), depth="", due=None, piece="") -> dict:
     qdepth = depth           # the question's depth; `depth` below is reused for the hint depth
     if result not in RESULTS:
         raise UsageError(f"result must be one of {', '.join(RESULTS)}")
@@ -929,6 +939,9 @@ def record(cfg, slug, concept, result, note="", guess=False, confidence="", hint
                                (qtype, QTYPES, "--qtype"), (etype, ETYPES, "--etype")):
         if val and val not in allowed:
             raise UsageError(f"{what} {val!r} is not one of {', '.join(allowed)}")
+    piece = (piece or "").strip()
+    if piece and result != "partial":
+        raise UsageError("--piece names what a partial answer lacked; a miss is re-taught whole, and ok lacks nothing")
     hint_depth = 0 if hint_depth is None else hint_depth
     if isinstance(hint_depth, bool) or not isinstance(hint_depth, int) or not 0 <= hint_depth <= 4:
         raise UsageError(f"--hint-depth {hint_depth!r} is outside 0-4 (0 = no hint, 4 = read the answer)")
@@ -942,6 +955,8 @@ def record(cfg, slug, concept, result, note="", guess=False, confidence="", hint
            "guess": bool(guess) and ok, "qtype": qtype or "", "etype": etype or "",
            "confidence": confidence or ("low" if guess else ""), "hint_depth": depth,
            "mode": mode or "practice", "note": note or "", **extra}
+    if piece:
+        row["piece"] = piece
     c = state["concepts"][cid]
     row["depth"] = qdepth or question_depth(cfg, slug, c, row["mode"])
     row["due"] = bool(c.get("due") and c["due"] <= row["date"]) if due is None else bool(due)

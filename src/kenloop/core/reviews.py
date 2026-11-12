@@ -83,7 +83,9 @@ def due(cfg, slug=None, limit=20, lane=None) -> int:
             why = (f"  suspect: its piece {c['suspect'][0]} was answered wrong on {c['suspect'][1]}"
                    if c.get("suspect") else "")
             if c.get("reteach"):
-                why += (f"  RE-TEACH FIRST: missed {c['reteach']}; teach it (`{H.PROG} taught {t} {cid}`), "
+                what = (f"partial on {c['reteach']}, missing: {c['reteach_piece']}; teach that piece"
+                        if c.get("reteach_piece") else f"missed {c['reteach']}; teach it")
+                why += (f"  RE-TEACH FIRST: {what} (`{H.PROG} taught {t} {cid}`), "
                         "and its cold recall is due the day after")
             print(f"  {cid}  due {c.get('due') or 'unscheduled'}  [{L.badge(c)}]{why}")
         if len(rows) > len(shown):
