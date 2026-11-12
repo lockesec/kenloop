@@ -6,6 +6,11 @@
 "re-teach first" in the stored state, so state written by an older ken reads as drift (exit 3) until it
 is rebuilt from the log.
 
+- **Workday boards are read to the end of their listing.** A search used to stop at 200 postings and
+  report the rest as partial (a real digest read 200 of 382, of 1,659 and of 2,000 matches). It now reads
+  up to 2,000; listing pages are one paced request per 20, and a posting's detail is still read only for
+  titles in your families. A board holding more than 2,000 matches still reads as partial and says so.
+
 - **A partial that lacked a piece is re-taught too.** `ken record TOPIC CONCEPT partial --piece "what was
   missing"` marks the concept RE-TEACH FIRST, and `ken due` names the piece; `ken taught` clears it and
   sets the cold recall for the day after. A partial without `--piece` (a slip of wording) just comes back.

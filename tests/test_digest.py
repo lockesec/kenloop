@@ -173,7 +173,7 @@ def test_workday_reads_detail_and_reports_a_partial_listing(home, monkeypatch):
 
     def fake_post(url, payload):
         calls.append(payload["offset"])
-        return {"total": 500, "jobPostings": posts}
+        return {"total": S.WORKDAY_MAX + 500, "jobPostings": posts}
 
     def fake_get(url):
         return {"jobPostingInfo": {"jobDescription": "<p>Do SOC work</p>", "startDate": "2030-03-18",
@@ -182,10 +182,32 @@ def test_workday_reads_detail_and_reports_a_partial_listing(home, monkeypatch):
     monkeypatch.setattr(S, "_post_json", fake_post)
     monkeypatch.setattr(S, "_get_json", fake_get)
     res = S.fetch("workday", "acme", cfg, keyword="soc", target=target)
-    assert res.status == "ok" and not res.complete and res.total == 500
+    assert res.status == "ok" and not res.complete and res.total == S.WORKDAY_MAX + 500
     assert len(res.postings) == S.WORKDAY_MAX and calls[-1] == S.WORKDAY_MAX - S.WORKDAY_PAGE
     p = res.postings[0]
     assert p["posted"] == "2030-03-18" and p["location"] == "Remote - US" and "SOC work" in p["jd"]
+
+
+def test_workday_reads_a_listing_past_the_old_200_cap_to_the_end(home, monkeypatch):
+    """2026-11-12 digest: three boards stopped at 200 of 382 / 1659 / 2000. A listing under the cap
+    is read to its end, every page, and is complete."""
+    cfg = CC.load(home)
+    target = {"board": "workday", "org": "acme", "host": "acme.wd1.myworkdayjobs.com", "site": "External"}
+    total, calls = 382, []
+
+    def fake_post(url, payload):
+        calls.append(payload["offset"])
+        n = max(0, min(S.WORKDAY_PAGE, total - payload["offset"]))
+        return {"total": total, "jobPostings": [{"title": f"Analyst {payload['offset'] + i}",
+                                                 "externalPath": f"/job/y_{payload['offset'] + i}",
+                                                 "locationsText": "Remote"} for i in range(n)]}
+
+    monkeypatch.setattr(S, "_post_json", fake_post)
+    monkeypatch.setattr(S, "_get_json", lambda url: {"jobPostingInfo": {}})
+    res = S.fetch("workday", "acme", cfg, keyword="security", target=target, detail_for=lambda t: False)
+    assert res.status == "ok" and res.complete and len(res.postings) == total
+    assert calls == list(range(0, total, S.WORKDAY_PAGE))  # every page once, none past the end
+    assert S.WORKDAY_MAX >= 2000
 
 
 def test_reconcile_never_marks_gone_from_a_partial_listing(home, monkeypatch, capsys):

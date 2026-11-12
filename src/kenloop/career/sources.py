@@ -237,7 +237,11 @@ def _check_fixture_entry(name: str, n: int, j) -> None:
 WORKDAY_HOST = re.compile(r"^[a-z0-9-]{1,63}\.wd\d{1,3}\.myworkdayjobs\.com$")
 WORKDAY_SITE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 WORKDAY_PAGE = 20
-WORKDAY_MAX = 200           # postings read per search; past this the listing is partial and says so
+# postings read per search; past this the listing is partial and says so. Was 200: the 2026-11-12
+# digest read crowdstrike 200 of 382, leidos 200 of 1659, bah 200 of 2000 matches, so every posting
+# past the 10th page was never seen. Listing pages are cheap (one paced request per 20); the per-posting
+# detail is read only for titles the caller's `detail_for` accepts (the digest passes the families).
+WORKDAY_MAX = 2000
 
 
 def _workday(org, target, keyword, detail_for=None):
