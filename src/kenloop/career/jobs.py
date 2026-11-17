@@ -21,6 +21,7 @@ from ..core.errors import (
 )
 from . import ats
 from . import demand as DM
+from . import digest as D
 from . import facts as F
 from . import roles as R
 from . import sources as S
@@ -332,44 +333,66 @@ def reconcile(cfg, board=None, org=None, all_targets=True) -> int:
     """Mark roles whose posting has vanished from a board that answered.
     Absence proves nothing unless the board was reachable AND non-empty; a
     role from an untracked board or a manual intake is skipped. Status never
-    changes: what a vanished posting means is your call."""
+    changes: what a vanished posting means is your call.
+
+    A role is placed on a board by its own board/org when it has them, else by company, the way
+    the digest matches a tracked role (a hand intake or an older record has no org). Every active
+    role gets a stated outcome: checked, on a board that did not answer, or not checkable and why."""
     targets = cfg.targets if (all_targets or not (board and org)) else [{"board": board, "org": org}]
     if not targets:
         raise NotEvaluable("no targets to reconcile against: nothing was checked")
     live: dict = {}
+    unread: set = set()
     inconclusive = []
     for t in targets:
         res = S.fetch(t["board"], t["org"], cfg)       # never keyword-filtered
         if res.status == "ok" and not res.complete:
             # a partial listing (Workday pages by relevance) cannot show that a posting closed
             inconclusive.append(f"{t['board']}:{t['org']} (partial: {len(res.postings)} of {res.total} listed)")
+            unread.add((t["board"], t["org"]))
         elif res.status == "ok":
             live[(t["board"], t["org"])] = {p["ext_id"] for p in res.postings if p["ext_id"]}
         else:
             inconclusive.append(f"{t['board']}:{t['org']} ({res.status}{': ' + res.error if res.error else ''})")
-    gone, checked = [], 0
+            unread.add((t["board"], t["org"]))
+    gone, checked, active, on_unread, unplaced = [], 0, 0, 0, []
     scanned, damaged = R.scan(cfg)
     for p in damaged:
         print(f"DAMAGED {p}: not checked")
     for slug, meta in scanned:
+        if meta.get("status") not in R.RECONCILE_ACTIVE or meta.get("posting_gone"):
+            continue
+        active += 1
+        if not meta.get("job_id"):
+            unplaced.append((slug, "no job id on the record"))
+            continue
         key = (meta.get("board"), meta.get("org"))
-        if (meta.get("status") not in R.RECONCILE_ACTIVE or not meta.get("job_id")
-                or meta.get("posting_gone") or key not in live):
+        keys = [key] if key in live or key in unread else \
+            [k for k in (*live, *unread) if D._same_org(meta, {"org": k[1]})]
+        if not keys:
+            unplaced.append((slug, f"{meta.get('company') or '?'} is on no [sources] board"))
+            continue
+        if any(k in unread for k in keys):
+            on_unread += 1                              # absence on a board we could not read proves nothing
             continue
         checked += 1
-        if meta["job_id"] not in live[key]:
+        if not any(D._id_match(meta["job_id"], e) for k in keys for e in live[k]):
             meta["posting_gone"] = H.today().isoformat()
-            R.history(meta, f"posting no longer listed on {key[0]}:{key[1]}")
+            R.history(meta, "posting no longer listed on " + ", ".join(f"{b}:{o}" for b, o in keys))
             R.save(cfg, slug, meta)
             gone.append(slug)
     for s in gone:
         print(f"GONE    {s}  (status unchanged; decide with `{H.PROG} jobs status`)")
-    if not gone and live:
-        print(f"checked {checked} tracked active role(s) on {len(live)} reachable board(s): none vanished"
-              + (f"; {len(damaged)} damaged role file(s) not checked" if damaged else ""))
+    print(f"checked {checked} of {active} active role(s) on {len(live)} reachable board(s): "
+          + (f"{len(gone)} vanished" if gone else "none vanished" if checked else "nothing could be checked")
+          + (f"; {on_unread} on a board that did not answer" if on_unread else "")
+          + (f"; {len(damaged)} damaged role file(s) not checked" if damaged else ""))
+    for s, why in unplaced:
+        print(f"NOT CHECKED {s}: {why}")
     for i in inconclusive:
         print(f"INCONCLUSIVE {i}: marks nothing")
-    return NOT_EVALUABLE if inconclusive or damaged else OK      # a partial check is not a clean one
+    # a partial check is not a clean one, and neither is a run that could check none of its roles
+    return NOT_EVALUABLE if inconclusive or damaged or (active and not checked) else OK
 
 
 # --- score / check / tailor / status ----------------------------------------

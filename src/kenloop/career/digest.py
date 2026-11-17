@@ -150,9 +150,26 @@ def _same_org(meta: dict, row: dict) -> bool:
 
 
 def _id_match(job_id: str, ext_id: str) -> bool:
-    """The record's job_id is the posting's id, or (Workday) the requisition its /job/ path ends with."""
-    return bool(job_id) and bool(ext_id) and (
-        job_id == ext_id or (ext_id.startswith("/job/") and ext_id.endswith("_" + job_id)))
+    """The record's job_id is the posting's id, or (Workday) the requisition its /job/ path ends with.
+    Two Workday paths match on that requisition: a retitled posting changes its path, not its req."""
+    if not (job_id and ext_id):
+        return False
+    if job_id == ext_id or (ext_id.startswith("/job/") and ext_id.endswith("_" + job_id)):
+        return True
+    if not (job_id.startswith("/job/") and ext_id.startswith("/job/")):
+        return False
+    a, b = _requisition(job_id), _requisition(ext_id)
+    return bool(a) and a == b
+
+
+_REQ = re.compile(r"_(R\d[\w-]*)$")
+
+
+def _requisition(path: str):
+    """The requisition a Workday /job/ path ends with: everything from the first _R<digit>, since some
+    tenants put an underscore inside it (Arctic Wolf R26_554). None when the path carries no such tail."""
+    m = _REQ.search(path.rsplit("/", 1)[-1])
+    return m.group(1) if m else None
 
 
 _STATUS_RANK = {s: i for i, s in enumerate(

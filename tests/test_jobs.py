@@ -186,6 +186,54 @@ def test_discover_and_reconcile(cfg, home, capsys):
     assert meta(home, "acme-dev")["status"] == "found"             # status is yours to change
 
 
+def test_reconcile_checks_a_hand_intake_by_company_and_job_id(cfg, home, capsys):
+    """A role taken in by hand (board 'manual', no org) is matched to its board by company, as the
+    digest matches it; it is not skipped while the run says 'none vanished'."""
+    cfg.targets = [{"board": "fixture", "org": "acme"}]
+    J.intake(cfg, "Acme", "Dev", job_id="1", status="applied")
+    J.intake(cfg, "Acme Corp", "Ops", job_id="2", status="applied")
+    _fixture(home, [{"ext_id": "2", "title": "Ops"}, {"ext_id": "9", "title": "Other"}])
+    assert J.reconcile(cfg) == 0
+    assert meta(home, "acme-dev")["posting_gone"] == "2030-03-20"
+    assert not meta(home, "acme-corp-ops").get("posting_gone")
+    assert "checked 2 of 2" in capsys.readouterr().out
+
+
+def test_reconcile_matches_a_workday_requisition_id(cfg, home, capsys):
+    """Real Workday ids are /job/<place>/<title>_<req>; a retitled posting keeps its requisition,
+    and a hand intake may hold the bare requisition. Neither is a vanished posting."""
+    cfg.targets = [{"board": "fixture", "org": "acme"}]
+    J.intake(cfg, "Acme", "Dev", job_id="R123", status="applied")
+    J.intake(cfg, "Acme", "Ops", job_id="/job/USA---Remote/Ops-Engineer--Remote-_R0456", status="applied")
+    _fixture(home, [{"ext_id": "/job/USA-Remote/Dev_R123", "title": "Dev"},
+                    {"ext_id": "/job/USA---Remote/Sr-Ops-Engineer--Remote-_R0456", "title": "Sr Ops"}])
+    assert J.reconcile(cfg) == 0
+    assert not meta(home, "acme-dev").get("posting_gone")
+    assert not meta(home, "acme-ops").get("posting_gone")
+    assert "checked 2 of 2" in capsys.readouterr().out
+
+
+def test_workday_requisition_with_an_underscore_is_matched_whole():
+    """Arctic Wolf requisitions hold an underscore (R26_554): the requisition is everything from the
+    first _R<digit>, so R26_554 never matches another year's R25_554, and a retitle still matches."""
+    from kenloop.career import digest as D
+    stored = "/job/Bengaluru-IND/Staff-Threat-Intelligence-Researcher_R26_554"
+    assert D._id_match(stored, "/job/Bengaluru-IND/Senior-Staff-TI-Researcher_R26_554")
+    assert not D._id_match(stored, "/job/Remote-United-States/Other-Role_R25_554")
+    assert not D._id_match(stored, "/job/Remote-United-States/Staff-Threat-Intelligence-Researcher_R26_1225")
+    assert D._id_match("/job/X/Role_R26_1053-1", "/job/Y/Role-Retitled_R26_1053-1")
+
+
+def test_reconcile_names_roles_it_cannot_place_and_never_says_clean_on_none(cfg, home, capsys):
+    cfg.targets = [{"board": "fixture", "org": "acme"}]
+    J.intake(cfg, "Globex", "Dev", job_id="7", status="applied")
+    _fixture(home, [{"ext_id": "1", "title": "Dev"}])
+    assert J.reconcile(cfg) == 2                     # 0 of 1 active roles checked is not a clean run
+    out = capsys.readouterr().out
+    assert "none vanished" not in out
+    assert "globex-dev" in out and "0 of 1" in out
+
+
 def test_reconcile_with_no_targets_is_not_evaluable(cfg):
     with pytest.raises(NotEvaluable):
         J.reconcile(cfg)
