@@ -60,8 +60,11 @@ def years_asked(cfg, jd: str):
     """The largest years-of-experience ask outside preferred/company/benefits text, or None."""
     if not jd:
         return None
-    asks = [y["min"] for y in Sec.years(Sec.split(jd, getattr(cfg, "headings", None) or None))
-            if y["kind"] not in _NOT_AN_ASK]
+    lines = Sec.split(jd, getattr(cfg, "headings", None) or None)
+    # with typed sections, the text above the first heading is the company intro ("nearly 20 years
+    # of industry contributions"), not an ask; without them it may be the whole posting
+    skip = _NOT_AN_ASK + (("none",) if Sec.found(lines) else ())
+    asks = [y["min"] for y in Sec.years(lines) if y["kind"] not in skip]
     return max(asks) if asks else None
 
 

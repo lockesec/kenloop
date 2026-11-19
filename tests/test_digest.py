@@ -390,6 +390,8 @@ YEARS_JD = {
     "five": "Requirements:\n- 5+ years of experience in security operations\n"
             "- 1 year of experience with PowerShell\n",
     "range": "Qualifications:\n- 2-5 years in IT administration or security operations\n",
+    "intro": "Joining us means hard problems. With nearly 20 years of industry contributions we lead.\n"
+             "Your Experience\n- 2+ years of experience in penetration testing\n",
     "standout": "What we need from you\n- 3 years of hands-on experience in vulnerability management\n"
                 "How to stand out (Preferred):\n- 5 years of relevant experience in cybersecurity\n",
 }
@@ -413,6 +415,7 @@ def test_years_one_above_is_a_stretch_two_above_set_aside(home):
     by = {r["title"].split()[-1]: r for r in rows}
     assert by["two"]["bucket"] == "apply first" and by["two"]["years"] == 2
     assert by["range"]["bucket"] == "apply first" and by["range"]["years"] == 2   # "years in", no "experience"
+    assert by["intro"]["bucket"] == "apply first" and by["intro"]["years"] == 2   # the intro's 20 is not an ask
     assert by["standout"]["bucket"] == "apply first" and by["standout"]["years"] == 3   # its 5 is preferred
     # an untyped-looking heading with &nbsp; is still read; the preferred 6 years never counts
     assert by["four"]["bucket"] == "stretch" and by["four"]["years"] == 4
