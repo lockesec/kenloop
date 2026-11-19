@@ -12,6 +12,14 @@ old each posting is. Buckets, from your [digest] settings:
                 chief); a posting outside the US; or neither family nor place fits (counted by
                 reason, never listed one by one)
 
+Experience asked: when [profile] years is set, a posting whose required experience is one year
+above it drops from apply first to stretch, and one asking two or more years above it is set
+aside ("asks 5+ years (you have 3)"). The ask read is the LARGEST one outside preferred, company
+and benefits text, as `jobs score` reads it: a posting's sub-skill asks ("1 year of PowerShell")
+are smaller than its main one. Every row shows the ask it read, and set-aside rows are counted
+by that reason, so a wrong read is visible. Without [profile] years nothing is judged, and the digest
+says so at the top rather than reading as "no posting asked too much".
+
 A posting whose title matches no family, or holds one of your `exclude` words ("product
 manager", "sales"), is outside your search and is only counted. A board
 that did not answer, or answered with a partial listing, is named at the top: an unreachable
@@ -35,12 +43,37 @@ import re
 from ..core import home as H
 from ..core.errors import NOT_EVALUABLE, OK, NotEvaluable
 from . import roles as R
+from . import sections as Sec
 from . import sources as S
 from . import wants as W
 
 BUCKETS = ("apply first", "stretch", "worth a look", "set aside")
 TOP_PICKS = 5                    # new apply-first rows shown at the top; the rest are counted
 FOLLOW_UP_DAYS = (7, 14, 30)     # portal check, short note, suggest closing as no_response
+YEARS_STRETCH = 1                # ask this many years above [profile] years: apply first -> stretch
+YEARS_ASIDE = 2                  # this many or more above: set aside
+_NOT_AN_ASK = ("preferred", "company", "benefits", "legal")  # every other section counts: a heading
+                                 # kenloop did not type ("What You Bring") leaves its lines in the one above
+
+
+def years_asked(cfg, jd: str):
+    """The largest years-of-experience ask outside preferred/company/benefits text, or None."""
+    if not jd:
+        return None
+    asks = [y["min"] for y in Sec.years(Sec.split(jd, getattr(cfg, "headings", None) or None))
+            if y["kind"] not in _NOT_AN_ASK]
+    return max(asks) if asks else None
+
+
+def profile_years(cfg):
+    """[profile] years as a number, None when unset; a value that is not a number raises."""
+    raw = (getattr(cfg, "profile", None) or {}).get("years")
+    if raw in (None, ""):
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        raise NotEvaluable(f"config: [profile] years = {raw!r} is not a number of years") from None
 
 
 def parse(table: dict, error) -> dict:
@@ -272,7 +305,15 @@ def bucket(cfg, p: dict, settings: dict) -> dict | None:
         b, reason = "worth a look", "" if fits else "you would have to move"
     else:
         b, reason = "set aside", "not a preferred family, and not in a place you said yes to"
-    return {"bucket": b, "reason": reason, "family": fam["name"], "senior": senior, "where": where,
+    ask, mine = years_asked(cfg, p.get("jd") or ""), profile_years(cfg)
+    if ask is not None and mine is not None and b != "set aside":
+        over = ask - mine
+        said = f"asks {ask}+ years (you have {mine:g})"
+        if over >= YEARS_ASIDE:
+            b, reason = "set aside", said
+        elif over >= YEARS_STRETCH and b == "apply first":
+            b, reason = "stretch", said
+    return {"bucket": b, "years": ask, "reason": reason, "family": fam["name"], "senior": senior, "where": where,
             "place_rank": place_rank(where, p.get("location"), settings.get("place_order", [])),
             "pay": pay, "flag": why if verdict == "flag" else "", "title": p.get("title") or "",
             "org": p.get("org"), "board": p.get("board"), "ext_id": p.get("ext_id") or "",
@@ -295,6 +336,9 @@ def render(rows: list, report: dict, today, settings: dict) -> str:
         out.append(f"- NOT REACHED: {e} (its postings are missing from this digest)")
     for e in report["partial"]:
         out.append(f"- PARTIAL: {e}")
+    if report.get("years_unjudged"):
+        out.append("- YEARS NOT JUDGED: [profile] years is not set in config.toml, so no posting was moved "
+                   "for the experience it asks.")
     new = sum(1 for r in rows if r["new"])
     out += ["", f"{len(rows)} posting(s) in your families, {new} new since the last digest; "
                 f"{report['outside']} outside them (not listed).", ""]
@@ -367,6 +411,8 @@ def _line(r: dict, today, new_col: bool = True) -> str:
     elif r.get("related"):
         role += (f" (same title as tracked `{r['related']['slug']}`, {_tracked_label(r['related'])}: "
                  "a different posting)")
+    if r.get("years") is not None:
+        role += f" (asks {r['years']}+ yrs)"
     note = f" ({r['reason']})" if r["reason"] else ""
     flag = f" FLAG: {r['flag']}" if r["flag"] else ""
     first = f"| {'NEW' if r['new'] else ''} " if new_col else ""
@@ -417,7 +463,8 @@ def run(cfg, settings: dict, today=None, write: bool = True, progress: bool = Fa
         seen = json.loads(seen_path.read_text(encoding="utf-8")) if seen_path.is_file() else {}
     except (OSError, ValueError) as e:
         raise NotEvaluable(f"{seen_path} could not be read ({e}): 'new' cannot be told from 'seen'") from e
-    report = {"boards": len(cfg.targets), "reached": 0, "errors": [], "partial": [], "outside": 0}
+    report = {"boards": len(cfg.targets), "reached": 0, "errors": [], "partial": [], "outside": 0,
+              "years_unjudged": profile_years(cfg) is None}
     roles, damaged = R.scan(cfg)
     report["roles_damaged"] = len(damaged)
     listed: set = set()

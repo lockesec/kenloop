@@ -381,3 +381,68 @@ def test_a_damaged_role_record_is_named_not_ignored(dcfg, home):
     (home / "roles" / "broken" / "meta.json").write_text("{not json")
     _, text = _digest(dcfg)
     assert "TRACKED ROLES NOT FULLY READ: 1 role record(s) are damaged" in text
+
+
+YEARS_JD = {
+    "two": "Requirements:\n- 2+ years of experience in a SOC\n",
+    "four": "What You Bring To The Team: &nbsp;\n- 4+ years of experience in a SOC or DFIR role\n"
+            "Preferred Qualifications\n- 6 years of experience with Splunk\n",
+    "five": "Requirements:\n- 5+ years of experience in security operations\n"
+            "- 1 year of experience with PowerShell\n",
+    "range": "Qualifications:\n- 2-5 years in IT administration or security operations\n",
+    "standout": "What we need from you\n- 3 years of hands-on experience in vulnerability management\n"
+                "How to stand out (Preferred):\n- 5 years of relevant experience in cybersecurity\n",
+}
+
+
+def _years_cfg(home, years=None):
+    text = CONFIG + (f'\n[profile]\nyears = "{years}"\n' if years is not None else "")
+    (home / "config.toml").write_text(text)
+    return CC.load(home)
+
+
+def _years_board(home):
+    _board(home, [{"ext_id": k, "title": f"SOC Analyst {k}", "location": "Remote - US",
+                   "posted": "2030-03-19", "jd": jd} for k, jd in YEARS_JD.items()])
+
+
+def test_years_one_above_is_a_stretch_two_above_set_aside(home):
+    cfg = _years_cfg(home, 3)
+    _years_board(home)
+    rows, _, _ = D.run(cfg, cfg.digest, today=TODAY, write=False)
+    by = {r["title"].split()[-1]: r for r in rows}
+    assert by["two"]["bucket"] == "apply first" and by["two"]["years"] == 2
+    assert by["range"]["bucket"] == "apply first" and by["range"]["years"] == 2   # "years in", no "experience"
+    assert by["standout"]["bucket"] == "apply first" and by["standout"]["years"] == 3   # its 5 is preferred
+    # an untyped-looking heading with &nbsp; is still read; the preferred 6 years never counts
+    assert by["four"]["bucket"] == "stretch" and by["four"]["years"] == 4
+    assert by["four"]["reason"] == "asks 4+ years (you have 3)"
+    # the largest ask wins over a sub-skill ask ("1 year of PowerShell")
+    assert by["five"]["bucket"] == "set aside" and by["five"]["reason"] == "asks 5+ years (you have 3)"
+
+
+def test_years_unset_is_said_not_read_as_nothing_asked_too_much(home):
+    cfg = _years_cfg(home)
+    _years_board(home)
+    rows, report, _ = D.run(cfg, cfg.digest, today=TODAY, write=False)
+    assert report["years_unjudged"] is True
+    assert all(r["bucket"] == "apply first" for r in rows)
+    text = D.render(rows, report, TODAY, cfg.digest)
+    assert "YEARS NOT JUDGED: [profile] years is not set" in text
+    assert "(asks 5+ yrs)" in text          # the ask is still shown on the row
+
+
+def test_years_set_renders_the_ask_and_groups_set_aside_by_it(home):
+    cfg = _years_cfg(home, 3)
+    _years_board(home)
+    rows, report, _ = D.run(cfg, cfg.digest, today=TODAY, write=False)
+    text = D.render(rows, report, TODAY, cfg.digest)
+    assert "YEARS NOT JUDGED" not in text
+    assert "- 1: asks 5+ years (you have 3)" in text
+
+
+def test_years_not_a_number_is_refused(home):
+    cfg = _years_cfg(home, "three")
+    _years_board(home)
+    with pytest.raises(NotEvaluable, match=r"\[profile\] years = 'three' is not a number"):
+        D.run(cfg, cfg.digest, today=TODAY, write=False)

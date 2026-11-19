@@ -23,6 +23,7 @@ _Q = r"(?:qualifications|skills|experience|requirements|points|knowledge|attribu
 PREFERRED_CUES = (
     rf"(?:preferred|desired|desirable|bonus|additional preferred|optional) {_Q}",
     r"preferred|desired|desirable|bonus|bonus points|pluses|extra credit|ideally",
+    r"how to stand out(?: \(preferred\))?|ways to stand out|stand out if you have",
     r"nice to haves?(?: skills| experience)?|good to haves?|it'?s a plus|would be a plus|"
     r"(?:even )?better if you have|nice if you have|what we value|we'?d love(?: to see)?|"
     r"(?:it'?s )?a bonus if you have|bonus if you have",
@@ -86,7 +87,7 @@ class Line:
 
 def _norm_heading(raw: str) -> tuple:
     """(visible heading text, normalised text for matching, heading-shaped?)."""
-    t = raw.strip()
+    t = re.sub(r"(?:\s|&nbsp;|\u00a0)+$", "", raw.strip())    # "What You Bring:&nbsp;" from board HTML
     shaped = t.startswith("#") or t.endswith(":") or (t.startswith("**") and t.endswith("**"))
     text = re.sub(r"^#+\s*", "", t).strip().strip("*_").strip().rstrip(":").strip().strip("*_").strip()
     letters = [c for c in text if c.isalpha()]
@@ -198,13 +199,17 @@ def requirement_lines(lines: list) -> list:
     return [ln for ln in lines if ln.text and ln.bullet]
 
 
+YEARS_IN = re.compile(YEARS.pattern + r"\s+(?:of|in|with|working|doing|as)\b", re.IGNORECASE)
+
+
 def years(lines: list) -> list:
-    """Years-of-experience asks: a number of years on a line that mentions experience."""
+    """Years-of-experience asks: a number of years on a line that mentions experience, or one
+    followed by what the years were spent on ("2-5 years in IT administration")."""
     out = []
     for ln in lines:
-        if ln.heading or "experience" not in ln.text.lower():
+        if ln.heading:
             continue
-        m = YEARS.search(ln.text)
+        m = YEARS.search(ln.text) if "experience" in ln.text.lower() else YEARS_IN.search(ln.text)
         if not m:
             continue
         lo = int(m.group(1))

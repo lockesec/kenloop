@@ -436,6 +436,8 @@ def suggest_fit(cfg, cov) -> tuple:
     except (TypeError, ValueError):
         mine = None
     asks = [y["min"] for y in cov.get("years") or [] if y.get("kind") == "required"]
+    if mine is None and asks:
+        why += f" (asks {max(asks)}+ years: NOT judged, [profile] years is not set)"
     if mine is not None and asks and max(asks) > mine:
         fit -= FIT_YEARS_PENALTY
         why += f" -0.5 (asks {max(asks)}+ years, [profile] years = {cfg.profile['years']})"
